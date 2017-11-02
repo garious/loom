@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
     uint32_t state[8] = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
     uint8_t block[64] = "AnatolyYakovenko11/2/201712pmPSTAnatolyYakovenko11/2/201712pmPST";
     uint32_t *blkptr = (void*)block;
-    uint64_t i;
+    uint64_t i=0;
     FILE *f = fopen(argv[1], "a+");
     struct timeval  start, now;
     if(!fseek(f, -40, SEEK_END)) {
@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
     printf("      %04x%04x%04x%04x\n", state[4], state[5], state[6], state[7]);
     assert(!gettimeofday(&start, 0));
     for(i; ;++i) {
-        if(__builtin_expect((i & 0xfffff) == 0, 1)) {
+        if(__builtin_expect((i & 0xfffff) == 0, 0)) {
             double total;
             uint64_t ix = i >> 20;
     		assert(!gettimeofday(&now, 0));
