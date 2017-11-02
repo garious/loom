@@ -9,7 +9,7 @@
 
 void sha256(void *input_data, uint32_t digest[8], uint32_t num_blks);
 int main(int argc, char *argv[]) {
-    uint32_t ostate[8] = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
+    static const uint32_t ostate[8] = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
     uint32_t state[8] = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
     uint8_t block[32] = "AnatolyYakovenko11/2/201712pmPST";
     uint32_t *blkptr = (void*)block;
@@ -28,7 +28,6 @@ int main(int argc, char *argv[]) {
     printf("      %04x%04x%04x%04x\n", state[4], state[5], state[6], state[7]);
     assert(!gettimeofday(&start, 0));
     for(i; ;++i) {
-		sha256(block, state, 1);
         if(__builtin_expect((i & 0xfffff) == 0, 1)) {
             double total;
             uint64_t ix = i >> 20;
@@ -42,6 +41,7 @@ int main(int argc, char *argv[]) {
     		printf("      %04x%04x%04x%04x\n", blkptr[4], blkptr[5], blkptr[6], blkptr[7]);
     		printf("speed %lu %G %G\n", i, total, i/total);
         }
+		sha256(block, state, 1);
         blkptr[0] = state[0];
         blkptr[1] = state[1];
         blkptr[2] = state[2];
