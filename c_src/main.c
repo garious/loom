@@ -11,7 +11,7 @@ void sha256(void *input_data, uint32_t digest[8], uint32_t num_blks);
 int main(int argc, char *argv[]) {
     static const uint32_t ostate[8] = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
     uint32_t state[8] = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
-    uint8_t block[64] = "Anatoly Evgenyavich Yakovenko was in SF at 11/2/2017 1:37pm PST\0";
+    uint8_t block[64] = "AnatolyYakovenko11/2/201712pmPSTAnatolyYakovenko11/2/201712pmPST";
     uint32_t *blkptr = (void*)block;
     uint64_t i;
     FILE *f = fopen(argv[1], "a+");
