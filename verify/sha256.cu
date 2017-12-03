@@ -7,11 +7,6 @@
 #include <map>
 #include <cuda.h>
 
-#include "salsa_kernel.h"
-#include "miner.h"
-
-#include "sha256.h"
-
 // define some error checking macros
 #undef checkCudaErrors
 
@@ -111,12 +106,6 @@ static const uint32_t host_finalblk[16] = {
 
 __constant__ uint32_t sha256_h[8];
 __constant__ uint32_t sha256_k[64];
-__constant__ uint32_t keypad[12];
-__constant__ uint32_t innerpad[11];
-__constant__ uint32_t outerpad[8];
-__constant__ uint32_t finalblk[16];
-__constant__ uint32_t pdata[20];
-__constant__ uint32_t midstate[8];
 
 __device__ void mycpy12(uint32_t *d, const uint32_t *s) {
 #pragma unroll 3
@@ -274,154 +263,37 @@ __device__ void cuda_sha256_transform(uint32_t *state, const uint32_t *block)
         state[i] += S[i];
 }
 
-//
-// HMAC SHA256 functions, modified to work with pdata and nonce directly
-//
-
-__device__ void cuda_HMAC_SHA256_80_init(uint32_t *tstate, uint32_t *ostate, uint32_t nonce)
+__device__ void cuda_SHA256(const uint32_t *start, uint32_t num,
+                            uint32_t *output)
 {
-    uint32_t ihash[8];
-    uint32_t pad[16];
-    int i;
+    uint32_t istate[8];
+    uint32_t ibuf[16];
+    uint32_t i;
+	mycpy32(ibuf, start);
+	mycpy32(ibuf + 8, start);
 
-    /* tstate is assumed to contain the midstate of key */
-    mycpy12(pad, pdata + 16);
-    pad[3] = nonce;
-    mycpy48(pad + 4, keypad);
-    cuda_sha256_transform(tstate, pad);
-    mycpy32(ihash, tstate);
-
-    cuda_sha256_init(ostate);
-#pragma unroll 8
-    for (i = 0; i < 8; i++)
-        pad[i] = ihash[i] ^ 0x5c5c5c5c;
-#pragma unroll 8
-    for (i=8; i < 16; i++)
-        pad[i] = 0x5c5c5c5c;
-    cuda_sha256_transform(ostate, pad);
-
-    cuda_sha256_init(tstate);
-#pragma unroll 8
-    for (i = 0; i < 8; i++)
-        pad[i] = ihash[i] ^ 0x36363636;
-#pragma unroll 8
-    for (i=8; i < 16; i++)
-        pad[i] = 0x36363636;
-    cuda_sha256_transform(tstate, pad);
-}
-
-__device__ void cuda_PBKDF2_SHA256_80_128(const uint32_t *tstate,
-    const uint32_t *ostate, uint32_t *output, uint32_t nonce)
-{
-    uint32_t istate[8], ostate2[8];
-    uint32_t ibuf[16], obuf[16];
-
-    mycpy32(istate, tstate);
-    cuda_sha256_transform(istate, pdata);
-    
-    mycpy12(ibuf, pdata + 16);
-    ibuf[3] = nonce;
-    ibuf[4] = 1;
-    mycpy44(ibuf + 5, innerpad);
-
-    mycpy32(obuf, istate);
-    mycpy32(obuf + 8, outerpad);
-    cuda_sha256_transform(obuf, ibuf);
-
-    mycpy32(ostate2, ostate);
-    cuda_sha256_transform(ostate2, obuf);
-    mycpy32_swab32(output, ostate2);       // TODO: coalescing would be desired
-
-    mycpy32(obuf, istate);
-    ibuf[4] = 2;
-    cuda_sha256_transform(obuf, ibuf);
-
-    mycpy32(ostate2, ostate);
-    cuda_sha256_transform(ostate2, obuf);
-    mycpy32_swab32(output+8, ostate2);     // TODO: coalescing would be desired
-
-    mycpy32(obuf, istate);
-    ibuf[4] = 3;
-    cuda_sha256_transform(obuf, ibuf);
-
-    mycpy32(ostate2, ostate);
-    cuda_sha256_transform(ostate2, obuf);
-    mycpy32_swab32(output+16, ostate2);    // TODO: coalescing would be desired
-
-    mycpy32(obuf, istate);
-    ibuf[4] = 4;
-    cuda_sha256_transform(obuf, ibuf);
-
-    mycpy32(ostate2, ostate);
-    cuda_sha256_transform(ostate2, obuf);
-    mycpy32_swab32(output+24, ostate2);    // TODO: coalescing would be desired
-}
-
-__global__ void cuda_pre_sha256(uint32_t g_inp[32], uint32_t g_tstate_ext[8], uint32_t g_ostate_ext[8], uint32_t nonce)
-{
-    nonce        +=       (blockIdx.x * blockDim.x) + threadIdx.x; 
-    g_inp        += 32 * ((blockIdx.x * blockDim.x) + threadIdx.x);
-    g_tstate_ext +=  8 * ((blockIdx.x * blockDim.x) + threadIdx.x);
-    g_ostate_ext +=  8 * ((blockIdx.x * blockDim.x) + threadIdx.x);
-
-    uint32_t tstate[8], ostate[8];
-    mycpy32(tstate, midstate);
-
-    cuda_HMAC_SHA256_80_init(tstate, ostate, nonce);
-
-    mycpy32(g_tstate_ext, tstate);            // TODO: coalescing would be desired
-    mycpy32(g_ostate_ext, ostate);            // TODO: coalescing would be desired
-
-    cuda_PBKDF2_SHA256_80_128(tstate, ostate, g_inp, nonce);
-}
-
-__global__ void cuda_post_sha256(uint32_t g_output[8], uint32_t g_tstate_ext[8], uint32_t g_ostate_ext[8], uint32_t g_salt_ext[32])
-{
-    g_output     +=  8 * ((blockIdx.x * blockDim.x) + threadIdx.x);
-    g_tstate_ext +=  8 * ((blockIdx.x * blockDim.x) + threadIdx.x);
-    g_ostate_ext +=  8 * ((blockIdx.x * blockDim.x) + threadIdx.x);
-    g_salt_ext   += 32 * ((blockIdx.x * blockDim.x) + threadIdx.x);
-
-    uint32_t tstate[16];
-    mycpy32(tstate, g_tstate_ext);            // TODO: coalescing would be desired
-    
-    uint32_t halfsalt[16];
-    mycpy64_swab32(halfsalt, g_salt_ext);     // TODO: coalescing would be desired
-    cuda_sha256_transform(tstate, halfsalt);
-    mycpy64_swab32(halfsalt, g_salt_ext+16);  // TODO: coalescing would be desired
-    cuda_sha256_transform(tstate, halfsalt);
-    cuda_sha256_transform(tstate, finalblk);
-
-    uint32_t buf[16];
-    mycpy32(buf, tstate);
-    mycpy32(buf + 8, outerpad);
-
-    uint32_t ostate[16];
-    mycpy32(ostate, g_ostate_ext);
-
-    cuda_sha256_transform(ostate, buf);
-    mycpy32_swab32(g_output, ostate);        // TODO: coalescing would be desired
+	for(i = 0; i < num;	++i) {
+		cuda_sha256_init(istate);
+		cuda_sha256_transform(istate, ibuf);
+		mycpy32(ibuf, istate);
+		mycpy32(ibuf + 8, istate);
+	}
+   	mycpy32(output, ibuf);
 }
 
 //
 // callable host code to initialize constants and to call kernels
 //
 
-extern "C" void prepare_sha256(int thr_id, uint32_t host_pdata[20], uint32_t host_midstate[8])
+extern "C" void sha256(uint32_t start[8], uint32_t num)
 {
     static bool init[8] = {false, false, false, false, false, false, false, false};
     if (!init[thr_id])
     {
         checkCudaErrors(cudaMemcpyToSymbol(sha256_h, host_sha256_h, sizeof(host_sha256_h), 0, cudaMemcpyHostToDevice));
         checkCudaErrors(cudaMemcpyToSymbol(sha256_k, host_sha256_k, sizeof(host_sha256_k), 0, cudaMemcpyHostToDevice));
-        checkCudaErrors(cudaMemcpyToSymbol(keypad, host_keypad, sizeof(host_keypad), 0, cudaMemcpyHostToDevice));
-        checkCudaErrors(cudaMemcpyToSymbol(innerpad, host_innerpad, sizeof(host_innerpad), 0, cudaMemcpyHostToDevice));
-        checkCudaErrors(cudaMemcpyToSymbol(outerpad, host_outerpad, sizeof(host_outerpad), 0, cudaMemcpyHostToDevice));
-        checkCudaErrors(cudaMemcpyToSymbol(finalblk, host_finalblk, sizeof(host_finalblk), 0, cudaMemcpyHostToDevice));
         init[thr_id] = true;
     }
-    checkCudaErrors(cudaMemcpyToSymbol(pdata, host_pdata, 20*sizeof(uint32_t), 0, cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpyToSymbol(midstate, host_midstate, 8*sizeof(uint32_t), 0, cudaMemcpyHostToDevice));
 }
 
 extern "C" void pre_sha256(int thr_id, int stream, uint32_t nonce, int throughput)
