@@ -1,5 +1,3 @@
-#define _FILE_OFFSET_BITS 64
-#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -12,29 +10,20 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/socket.h>
 #include <sys/fcntl.h>
+
 
 //#define SHOW_DEBUG
 #include "err.h"
 #include "sock.h"
 
-#define TSIZE (512*1024*1024*1024llu)
-#define QSIZE (512*1024)
-//read packets from the network
-struct packet {
-    uint8_t from[32];
-    uint8_t lastvalidhash[32];
-    uint8_t to[32];
-    uint32_t amount;
-    uint8_t signature[32];
-};
-LOCAL int read_packets(int server) {
-    sock_recvfrom(server, &packet
-}
 //verify the signatures
 //fetch all the data
 //do all the account transfers
 //write all the data
+//we need to make sure we dont read and write at the same time
+//i think thats where the perf hit comes from
 //compute the merkle
 //sequence all the transactions 
 PUBLIC int main(int _argc, char * const _argv[]) {
