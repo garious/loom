@@ -20,11 +20,6 @@
 
 #define PSIZE (512*1024)
 //read packets from the network
-struct tx_state {
-    struct account from;
-    struct account to;
-};
-
 struct packet {
     enum packet_type type;
     union {
