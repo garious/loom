@@ -18,14 +18,11 @@
 #include "err.h"
 #include "sock.h"
 
-#define TSIZE (512*1024*1024*1024llu)
 #define PSIZE (512*1024)
 //read packets from the network
 struct tx_state {
-    uint8_t from[32];
-    uint64_t frombal;
-    uint8_t to[32];
-    uint64_t tobal;
+    struct account from;
+    struct account to;
 };
 
 struct packet {
