@@ -34,60 +34,55 @@ CATCH(err):
     return err;
 }
 
-PRIVATE int sock_msghdr_alloc(ssize_t cnt, struct msgshdr **pmsgs) {
+PRIVATE int sock_msghdr_alloc(size_t cnt, struct msgshdr **pmsgs) {
     int err = 0;
     ssize_t i;
     struct msghdr *msgs = 0;
-    struct *iov;
+    struct iovec *iov;
     struct sockaddr_storage *src_addr;
-    ssize_t total = sizeof(*msgs) * cnt +
-                    sizeof(*iov) * cnt +
-                    sizeof(*src_addr) * cnt;
+    iov = (struct iovec *)&msgs[cnt];
+    src_addr = (struct sockaddr_storage *)&iov[cnt];
+    size_t total = (uintptr_t)&src_addr[cnt];
     TEST(err, msgs = calloc(1, total));
     iov = &msgs[cnt];
     src_addr = &iov[cnt];
     for(i = 0; i < cnt; ++i) {
-        msgs.msg_iov=&iov[i];
-        msgs.msg_iovlen=1;
-        msgs.msg_name=&src_addr[i];
-        msgs.msg_namelen=sizeof(src_addr[i]);
-        msgs.msg_control=0;
-        msgs.msg_controllen=0;
+        msgs[i].msg_iov=&iov[i];
+        msgs[i].msg_iovlen=1;
+        msgs[i].msg_name=&src_addr[i];
+        msgs[i].msg_namelen=sizeof(src_addr[i]);
+        msgs[i].msg_control=0;
+        msgs[i].msg_controllen=0;
     }
     *pmsgs = msgs;
 CATCH(err):
     return err;
 }
+
 PRIVATE int sock_msghdr_free(struct msgshdr *msgs) {
+    free(msgs);
 }
+
 PRIVATE void sock_msghdr_set(struct msghdr *msgs, ssize_t cnt, char *buf[],
-                             ssize_t size) {
+                             size_t size) {
+    ssize_t i;
+    for(i = 0; i < cnt; ++i) {
+        msgs[i].msgs_iov[0].iov_base = buf[i];
+        msgs[i].msgs_iov[0].iov_len = size;
+    }
 }
-PRIVATE int sock_recvmsgs(int fd, struct msghdr *msgs, ssize_t cnt, 
+
+PRIVATE int sock_recvmsgs(int fd, struct msghdr *msgs, size_t cnt, 
                           uint32_t mstimeout, ssize_t *pcnt) {
-    struct sockaddr_storage src_addr;
-
-    struct iovec iov[1];
-   
-    struct msghdr message;
     int err = 0;
-    struct sockaddr_storage src_addr;
-    socklen_t src_addr_len=sizeof(src_addr);
     ssize_t cnt;
-
-    iov[0].iov_base=buffer;
-    iov[0].iov_len=sizeof(buffer);
- 
-    message.msg_name=&src_addr;
-    message.msg_namelen=sizeof(src_addr);
-    message.msg_iov=iov;
-    message.msg_iovlen=1;
-    message.msg_control=0;
-    message.msg_controllen=0;
-
-
+    struct timespec tm;
+    tm.tv_sec = mstimeout / 1000;
+    tm.tv_nsec = (mstimeout - (tm.tv_sec * 1000))*1000*1000;
     TEST(err, -1 != (cnt = recvmmsg(fd, msgs, cnt, 0, )));
-    TEST(err, !(message.msg_flags & MSG_TRUNC));
+    for(i = 0; i < cnt; ++i) {
+        TEST(err, !(msgs[i].msg_flags & MSG_TRUNC));
+    }
     *pcnt = cnt;
 CATCH(err):
     return err;
