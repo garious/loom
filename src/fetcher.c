@@ -15,25 +15,28 @@ struct state {
     uint64_t total_fetches;
 };
 
-LOCAL int find_tx(int fd, off_t offset, uint8_t key[KEY_SIZE], struct account *s) {
+LOCAL int find_tx(int fd, off_t offset, uint8_t key[KEY_SIZE], struct account_pos *s) {
     int err = 0;
     static const uint8_t empty[KEY_SIZE] = {};
     off_t start = offset;
+    off_t end = TSIZE; 
     TEST(err, (off_t)-1 != lseek(fd, start, SEEK_SET));
     while(1) {
-        TEST(err, sizeof(s->from) == read(fd, &s->from, sizeof(s->from)));
-        if(!memcmp(s->addr.key, key, KEY_SIZE)) {
+        s->pos = start;
+        TEST(err, sizeof(s->from) == read(fd, &s->acc, sizeof(s->acc)));
+        if(!memcmp(s->acc.addr.key, empty, key)) {
+            //found it
             break;
         }
-        if(!memcmp(s->addr.key, empty, KEY_SIZE)) {
-            assert(s->bal == 0);
+        if(!memcmp(s->acc.addr.key, empty, KEY_SIZE)) {
+            //not in table
+            assert(s->acc.bal == 0);
             break;
         }
-        if(s->addr.offset == start) {
-            s->bal = 0;
-            break;
+        start += sizeof(s->acc);
+        if(start >= end) {
+            start = 0;
         }
-        start += sizeof(s->from);
     }
 CATCH(err):
     return err;
@@ -45,7 +48,7 @@ LOCAL void *run_fetcher(void *ctx) {
 	int err = 0;
     int fd = 0;
     C_ASSERT(sizeof(offset) == 8);
-	TEST(err, 0 != (fd = open(table, O_RDWR | O_NOATIME, 0)));
+	TEST(err, 0 != (fd = open(table, O_RDONLY | O_NOATIME, 0)));
     while(1) {
         struct packet *p;
         struct tx_state *s;
