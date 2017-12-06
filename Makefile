@@ -31,7 +31,7 @@ all:$(OBJS) $(COVS)
 clean:
 	rm -rf out cov *.gcno *.gcda *.gcov
 
-CFLAGS+=-Iinc -fPIC -g -Wall -Werror -O3 -std=c99 -fvisibility=hidden -ffunction-sections
+CFLAGS+=-Iinc -fPIC -g -Wall -Werror -O3 -std=c99 -fvisibility=hidden -ffunction-sections -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64
 
 DEP_FLAGS=-MMD -MP -MF $(@:%=%.d)
 LD_FLAGS=-Wl,--gc-sections
