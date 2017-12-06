@@ -11,6 +11,7 @@ enum packet_type {
     __LAST = 0x7fffffff    
 };
 
+//physical on the network
 struct tx {
     union {
         off_t offset;
@@ -28,17 +29,25 @@ struct tx {
     uint8_t signature[KEY_SIZE];
 };
 
+//phisical on disk
 struct account {
     union {
         off_t offset;
         uint8_t key[KEY_SIZE];
     } addr;
     uint64_t bal;
-}
+};
 
+//virtual
+struct account_pos {
+    struct account acc;
+    off_t pos;
+};
+
+//virtual
 struct tx_state {
-    struct account from;
-    struct account to;
+    struct account_pos from;
+    struct account_pos to;
     bool executed;
 };
 
