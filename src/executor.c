@@ -4,6 +4,7 @@ struct state {
     size_t cnt;
     struct packets *packets;
     struct tx_state *tx_state;
+    struct uint32_t *ops;
     size_t ix;
     uint64_t total_executed;
 };
@@ -28,6 +29,8 @@ LOCAL void *run_executor(void *ctx) {
         p = &state.packets[ix];
         s = &state.tx_state[ix];
         cost = (uint64_t)p->fee + (uint64_t)p->amount;
+        s->from.change = -cost;
+        s->to.change = p->amount;
         if (s->from.bal < cost) {
             //not enough cash
             continue;
