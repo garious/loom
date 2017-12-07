@@ -41,6 +41,7 @@ struct account {
 //virtual
 struct account_pos {
     struct account acc;
+    int64_t change;
     off_t pos;
 };
 
