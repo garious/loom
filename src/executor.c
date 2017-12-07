@@ -1,10 +1,13 @@
+#include "hashtable.h"
+
 struct state {
     sem_t sem;
     sem_t waiter;
-    size_t cnt;
+    size_t acnt;
+    //hashtable of all the loaded accounts
+    struct account_pos *accounts;
+    size_t pcnt;
     struct packets *packets;
-    struct tx_state *tx_state;
-    struct uint32_t *ops;
     size_t ix;
     uint64_t total_executed;
 };
@@ -16,33 +19,30 @@ LOCAL void *run_executor(void *ctx) {
     C_ASSERT(sizeof(offset) == 8);
     while(true) {
         struct packet *p;
-        struct tx_state *s;
+        struct account_pos *from, *to;
         uint64_t ix;
         uint64_t cost;
 
         TEST(err, !sem_wait(&state->sem));
         ix = __sync_fetch_and_add(&state->ix, 1);
-        if(ix >= state->cnt) {
+        if(ix >= state->pcnt) {
             sem_post(&state->waiter);
             continue;
         }
         p = &state.packets[ix];
-        s = &state.tx_state[ix];
         cost = (uint64_t)p->fee + (uint64_t)p->amount;
-        s->from.change = -cost;
-        s->to.change = p->amount;
-        if (s->from.bal < cost) {
-            //not enough cash
+        from = find(state->accounts, sizeof(state->accounts[0]), state->acnt,
+                    p->from.offset);
+        assert(from);
+        to = find(state->accounts, sizeof(state->accounts[0]), state->acnt,
+                    p->to.offset);
+        assert(to);
+        if(from->acc.bal + from->change < cost) {
+            //skip this one if it can't afford it
             continue;
         }
-        if (s->to.bal < (s->to.bal + p->amount)) {
-            //overflow
-            continue;
-        }
-        s->to.bal = s->to.bal + p->amount;
-        s->from.bal = s->from.bal - cost;
-        s->executed = true;
-        TEST(err, !find_tx(fd, tx->to.offset, tx->to.key, &s->to));
+        from->change -= cost;
+        to->change += p->amount;
         __sync_fetch_and_add(&state->total_executed, 1);
     }
 CHECK(err):
