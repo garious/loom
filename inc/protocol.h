@@ -29,6 +29,13 @@ struct tx {
     uint8_t signature[KEY_SIZE];
 };
 
+struct packet {
+    enum packet_type type;
+    union {
+        struct tx tx;
+    } data;
+};
+
 //phisical on disk
 struct account {
     union {

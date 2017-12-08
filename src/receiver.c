@@ -20,13 +20,6 @@
 
 #define PSIZE (512*1024)
 //read packets from the network
-struct packet {
-    enum packet_type type;
-    union {
-        struct tx tx;
-    } data;
-};
-
 struct packets {
     size_t cnt;
     struct packet packets[PSIZE];
@@ -40,7 +33,7 @@ struct queue {
 };
 
 static queue queue;
-LOCAL int read_packets(int server) {
+LOCAL int receive_packets(int server) {
     int err = 0;
     struct msgshdr *pmsgs = 0;
     TEST(err, !sock_msghdr_alloc(cnt, *pmsgs));
