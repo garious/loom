@@ -1,4 +1,5 @@
 #include "hashtable.h"
+#include "protocol.h"
 
 struct state {
     sem_t sem;
@@ -30,6 +31,9 @@ LOCAL void *run_executor(void *ctx) {
             continue;
         }
         p = &state.packets[ix];
+        if(p->type != TX) {
+            continue;
+        }
         cost = (uint64_t)p->fee + (uint64_t)p->amount;
         from = find(state->accounts, sizeof(state->accounts[0]), state->acnt,
                     p->from.offset);
@@ -39,6 +43,7 @@ LOCAL void *run_executor(void *ctx) {
         assert(to);
         if(from->acc.bal + from->change < cost) {
             //skip this one if it can't afford it
+            p->type = INVALID;
             continue;
         }
         from->change -= cost;

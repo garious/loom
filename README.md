@@ -10,6 +10,7 @@ loom takes tranascations, schedules them in the most optimial to execute way
     2. verify the signatures
         * if its a PoRep, check all of the sigs
     3. fetch all the data from the big table
+        * src/fetcher.c
     3.5 sorter
         * create an ops table, and then sort it by reads first, then writes
             * read from address

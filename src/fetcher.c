@@ -10,7 +10,7 @@ struct state {
     sem_t waiter;
     size_t cnt;
     struct packets *packets;
-    struct tx_state *tx_state;
+    struct account *account_pos;
     size_t fix;
     uint64_t total_fetches;
 };
