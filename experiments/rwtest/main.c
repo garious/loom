@@ -35,6 +35,7 @@ static char *table;
 
 void *run_thread(void *ctx) {
     int *count = (int*)ctx;
+    char buf[BUFSIZE];
     while(1) {
         uint64_t ix = __sync_fetch_and_add(&rix, 1);
         uint32_t op = ops[ix % OPSIZE];
