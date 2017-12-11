@@ -1,5 +1,3 @@
-all:table
+all:
 	gcc -Wall -Werror -O3 -pthread main.c -o main
 
-table:
-	fallocate -l 640G table
