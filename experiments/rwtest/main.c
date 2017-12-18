@@ -35,7 +35,7 @@ static char *table;
 
 void *run_thread(void *ctx) {
     int *count = (int*)ctx;
-    char buf[BUFSIZE];
+    //char buf[BUFSIZE];
     while(1) {
         uint64_t ix = __sync_fetch_and_add(&rix, 1);
         uint32_t op = ops[ix % OPSIZE];
@@ -109,8 +109,8 @@ int main(int argc, const char *argv[]) {
     }
     while(1) {
         int64_t diff;
-        //sleep(1);
-        TEST(err, !gettimeofday(&now, 0));
+//      sleep(1);
+    	TEST(err, !gettimeofday(&now, 0));
         total = now.tv_usec + (double)now.tv_sec * 1000000 ;
         total = total - (start.tv_usec + (double)start.tv_sec * 1000000);
         start = now;
