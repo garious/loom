@@ -1,0 +1,27 @@
+[package]
+name = "loom"
+version = "0.0.1"
+authors = [
+    "Anatoly Yakovenko <aeyakovenko@gmail.com>"
+]
+license = "BSD-3-Clause/MIT or Apache"
+documentation = "tbd"
+keywords = ["blockchain", "nostd"]
+readme = "README.md"
+build = "build.rs"
+
+[[bin]]
+doc = false
+name = "loom"
+
+[profile.release]
+lto=true
+
+[build-dependencies]
+vergen = "0.1"
+
+[dependencies]
+"alloc-no-stdlib" = "~1.2"
+
+[features]
+no-stdlib = ["alloc-no-stdlib/no-stdlib"] 
