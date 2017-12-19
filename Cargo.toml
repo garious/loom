@@ -10,13 +10,6 @@ keywords = ["blockchain", "nostd"]
 readme = "README.md"
 build = "build.rs"
 
-[[bin]]
-doc = false
-name = "loom"
-
-[profile.release]
-lto=true
-
 [build-dependencies]
 vergen = "0.1"
 
