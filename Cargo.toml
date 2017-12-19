@@ -13,8 +13,5 @@ build = "build.rs"
 [build-dependencies]
 vergen = "0.1"
 
-[dependencies]
-"alloc-no-stdlib" = "~1.2"
-
 [features]
-no-stdlib = ["alloc-no-stdlib/no-stdlib"] 
+no-stdlib = []
