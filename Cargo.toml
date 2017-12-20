@@ -6,12 +6,5 @@ authors = [
 ]
 license = "BSD-3-Clause/MIT or Apache"
 documentation = "tbd"
-keywords = ["blockchain", "nostd"]
+keywords = ["blockchain"]
 readme = "README.md"
-build = "build.rs"
-
-[build-dependencies]
-vergen = "0.1"
-
-[features]
-no-stdlib = []
