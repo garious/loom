@@ -12,17 +12,17 @@ pub fn server(socket: &mut UdpSocket) -> Result<UdpSocket> {
 
 pub fn read(socket: &mut UdpSocket, messages: &mut [RecvMessage], num: &mut usize) -> Result<()> {
     for v in messages.iter_mut() {
-        let mut ptr = &v as *mut RecvMessage;
+        let mut ptr = v as *mut RecvMessage;
         let sz = size_of::<RecvMessage>();
         let max = size_of::<Message>();
         let buf = from_raw_parts(ptr, sz);
         let res = socket.recv_from(&mut buf)?;
         match res {
-            Ok(nrecv, from) -> 
+            Ok(nrecv, from) => 
                 if nrecv >= max {
                     v.msg.kind = Invalid;
                 }
-            Err(e) -> 
+            Err(e) => 
                 v.msg.kind = Invalid;
                 return Ok(());
         };
