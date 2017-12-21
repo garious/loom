@@ -2,7 +2,7 @@ use std::net::UdpSocket;
 use std::mem::transmute;
 use std::mem::size_of;
 use std::slice::from_raw_parts;
-use data::{RecvMessage, Message, Invalid};
+use data::{RecvMessage, Message, INVALID};
 use std::io::Result;
 
 pub fn server(socket: &mut UdpSocket) -> Result<UdpSocket> {
@@ -21,12 +21,12 @@ pub fn read(socket: &mut UdpSocket, messages: &mut [RecvMessage], num: &mut usiz
             let res = socket.recv_from(buf);
 
             match res {
-                Ok((nrecv, from)) => 
+                Ok((nrecv, _from)) => 
                     if nrecv >= max {
-                        v.msg.kind = Invalid
+                        v.msg.kind = INVALID
                     },
                 Err(_) =>  {
-                    v.msg.kind = Invalid;
+                    v.msg.kind = INVALID;
                     break;
                  }
             };
