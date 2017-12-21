@@ -1,3 +1,5 @@
+#![allow(mutable_transmutes)]
+
 use std::net::UdpSocket;
 use std::mem::transmute;
 use std::mem::size_of;
