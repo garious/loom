@@ -7,10 +7,10 @@ use std::slice::from_raw_parts;
 use data::{RecvMessage, Message, INVALID};
 use std::io::Result;
 
-pub fn server(socket: &mut UdpSocket) -> Result<UdpSocket> {
-    let s = UdpSocket::bind("0.0.0.0:12345")?;
-    s.set_nonblocking(true);
-    return Ok(s);
+pub fn server() -> Result<UdpSocket> {
+    let ret = UdpSocket::bind("0.0.0.0:12345")?;
+    ret.set_nonblocking(true)?;
+    return Ok(ret);
 }
 
 pub fn read(socket: &mut UdpSocket, messages: &mut [RecvMessage], num: &mut usize) -> Result<()> {
