@@ -1,7 +1,8 @@
 use std::net::UdpSocket;
-use mem::size_of;
-use core::slice::from_raw_parts;
-use data::{RecvMessage, Message};
+use std::mem::transmute;
+use std::mem::size_of;
+use std::slice::from_raw_parts;
+use data::{RecvMessage, Message, Invalid};
 use std::io::Result;
 
 pub fn server(socket: &mut UdpSocket) -> Result<UdpSocket> {
@@ -12,20 +13,24 @@ pub fn server(socket: &mut UdpSocket) -> Result<UdpSocket> {
 
 pub fn read(socket: &mut UdpSocket, messages: &mut [RecvMessage], num: &mut usize) -> Result<()> {
     for v in messages.iter_mut() {
-        let mut ptr = v as *mut RecvMessage;
-        let sz = size_of::<RecvMessage>();
-        let max = size_of::<Message>();
-        let buf = from_raw_parts(ptr, sz);
-        let res = socket.recv_from(&mut buf)?;
-        match res {
-            Ok(nrecv, from) => 
-                if nrecv >= max {
+        unsafe {
+            let sz = size_of::<RecvMessage>();
+            let p = v as *mut RecvMessage;
+            let buf = transmute(from_raw_parts(p, sz));
+            let max = size_of::<Message>();
+            let res = socket.recv_from(buf);
+
+            match res {
+                Ok((nrecv, from)) => 
+                    if nrecv >= max {
+                        v.msg.kind = Invalid
+                    },
+                Err(_) =>  {
                     v.msg.kind = Invalid;
-                }
-            Err(e) => 
-                v.msg.kind = Invalid;
-                return Ok(());
-        };
+                    break;
+                 }
+            };
+        }
         *num = *num + 1;
     }
     return Ok(());
