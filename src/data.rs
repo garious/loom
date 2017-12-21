@@ -11,6 +11,11 @@ pub struct Transaction {
     pub signature: [u8; 32],
 }
 
+pub struct POH {
+    pub hash: [u8; 32],
+    pub hash_count: u64,
+}
+
 #[derive(Copy,Clone)]
 #[repr(C)]
 pub union MessageData {
@@ -23,14 +28,27 @@ impl Default for MessageData {
     }
 }
 
-pub const INVALID: u8 = 0;
-pub const TRANSACTION: u8 = 1;
-pub const MAX_PACKET: usize = 1024*16;
+#[repr(C)]
+#[repr(u8)]
+pub enum Kind {
+    Invalid,
+    Transaction,
+    POH,
+}
+
+impl Default for Kind {
+    fn default() -> Kind {
+        return Kind::Invalid;
+    }
+}
+
+
+pub const MAX_PACKET: usize = 1024*4;
 
 #[derive(Default)]
 #[repr(C)]
 pub struct Message {
-    pub kind: u8,
+    pub kind: Kind,
     pub unused: [u8; 7],
     pub data: MessageData,
 }
