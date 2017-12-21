@@ -1,3 +1,4 @@
+#[derive(Default)]
 #[derive(Copy,Clone)]
 #[repr(C)]
 pub struct Transaction {
@@ -16,18 +17,20 @@ pub union MessageData {
     pub tx: Transaction,
 }
 
+impl Default for MessageData {
+    fn default() -> MessageData {
+        return MessageData{tx : Transaction::default()};
+    }
+}
+
 pub const INVALID: u8 = 0;
 pub const TRANSACTION: u8 = 1;
+pub const MAX_PACKET: usize = 1024*16;
 
+#[derive(Default)]
 #[repr(C)]
 pub struct Message {
     pub kind: u8,
     pub unused: [u8; 7],
     pub data: MessageData,
-}
-
-#[repr(C)]
-pub struct RecvMessage {
-    pub msg: Message,
-    pub unused: u64,
 }
