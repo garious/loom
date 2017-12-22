@@ -16,8 +16,8 @@ impl State {
     fn new(size: usize) -> State {
         return State{accounts: Vec::new(size)};
     }
-    fn lookup(&self, key: [u8; 32]) -> Account {
-        return self.accounts[0];
+    fn lookup(&self, key: [u8; 32]) -> &mut Account {
+        return &mut self.accounts[0];
     }
     fn withdrawals(&mut self, msgs: &mut [data::Message]) {
         for m in msgs {
@@ -27,11 +27,11 @@ impl State {
             //TODO(aey) multiple threads
             let acc = self.lookup(m.from);
             let combined = *m.amount + m.fee;
-            if self.accounts[acc].balance > combined {
+            if acc.balance > combined {
                 m.state = data::State::Withdrawn;
                 unsafe {
-                    atomic_xsub(self.accounts[acc].balance.as_mut_ptr(), 
-                                combined.as_ptr());
+                    atomic_xsub(acc.balance.as_mut_ptr(), 
+                                combined);
                 }
             }
         }
@@ -42,11 +42,11 @@ impl State {
                 continue;
             }
             if m.state == data::State::Withdrawn {
-                let acc = self.lookup(m.to);
+                let acc = self.lookup(m.data.tx.to);
                 //TODO(aey) multiple threads
                 unsafe {
-                    atomic_xadd((&mut self.accounts[acc].balance) as *mut u64,
-                                (&m.data.tx.amount) as *const u64);
+                    atomic_xadd((&mut acc.balance) as *mut u64,
+                                m.data.tx.amount);
                 }
                 m.state = data::State::Deposited;
             }
