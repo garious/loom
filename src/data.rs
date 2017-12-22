@@ -38,6 +38,7 @@ impl Default for MessageData {
     }
 }
 
+#[derive(PartialEq)]
 #[repr(C)]
 #[repr(u8)]
 pub enum Kind {
@@ -47,6 +48,13 @@ pub enum Kind {
     Signature,
 }
 
+impl Default for Kind {
+    fn default() -> Kind {
+        return Kind::Invalid;
+    }
+}
+
+#[derive(PartialEq)]
 #[repr(C)]
 #[repr(u8)]
 pub enum State {
@@ -55,10 +63,9 @@ pub enum State {
     Deposited,
 }
 
-
-impl Default for Kind {
-    fn default() -> Kind {
-        return Kind::Invalid;
+impl Default for State {
+    fn default() -> State {
+        return State::Unknown;
     }
 }
 
