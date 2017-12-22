@@ -34,8 +34,8 @@ impl State {
         let hash = State::key_to_hash(key) as usize;
         let ix = hash % cap;
         let x_ptr = self.accounts.as_mut_ptr();
-        unsafe {
-            for i in ix .. cap {
+        for i in ix .. cap {
+            unsafe {
                 let a = x_ptr.offset(i as isize);
                 if (*a).from == key {
                     return Ok(&mut (*a));
@@ -44,8 +44,19 @@ impl State {
                     return Ok(&mut (*a));
                 }
             }
-            return Err(Error::new(ErrorKind::Other, "oh no!"));
         }
+        for i in 0 .. ix {
+            unsafe {
+                let a = x_ptr.offset(i as isize);
+                if (*a).from == key {
+                    return Ok(&mut (*a));
+                }
+                if (*a).from == [0u8;32] {
+                    return Ok(&mut (*a));
+                }
+            }
+        }
+        return Err(Error::new(ErrorKind::Other, "no space"));
     }
 
     pub fn withdrawals(&mut self, msgs: &mut [data::Message]) -> Result<()> {
