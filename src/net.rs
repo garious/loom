@@ -46,9 +46,6 @@ pub fn write(socket: UdpSocket, messages: &[Message], num: &mut usize) -> Result
     return Ok(());
 }
 
-#[cfg(test)]
-use std::mem::uninitialized;
-
 #[test]
 fn server_test() {
     let sz = size_of::<Message>();
@@ -56,7 +53,7 @@ fn server_test() {
     let client = UdpSocket::bind("0.0.0.0:0").expect("client socket");
     client.connect("127.0.0.1:12345").expect("connect to server");
     let max = MAX_PACKET/sz;
-    let mut m: [Message; 26] = unsafe { uninitialized() };
+    let mut m = [Message::default(); 26];
     let mut num = 0;
     write(client, &m[0..max], &mut num).expect("write");
     assert!(num == max);
