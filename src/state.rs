@@ -4,6 +4,7 @@ use std::io::Result;
 use std::io::Error;
 use std::io::ErrorKind;
 
+#[derive(Default)]
 #[repr(C)]
 struct Account {
     from: [u8; 32],
@@ -17,7 +18,9 @@ pub struct State {
 
 impl State {
     pub fn new(size: usize) -> State {
-        return State{accounts: Vec::with_capacity(size)};
+        let mut v = Vec::new();
+        v.resize_default(size);
+        return State{accounts: v};
     }
     fn key_to_hash(key: [u8; 32]) -> u64 {
         return ((key[0] as u64) << ((7 - 0) * 8)) |
@@ -68,7 +71,7 @@ impl State {
             unsafe {
                 let acc = self.lookup(m.data.tx.from)?;
                 let combined = m.data.tx.amount + m.data.tx.fee;
-                if acc.balance > combined {
+                if acc.balance >= combined {
                     m.state = data::State::Withdrawn;
                         atomic_xsub((&mut acc.balance) as *mut u64,
                                     combined);
@@ -110,9 +113,20 @@ fn state_test() {
 #[test]
 fn state_test2() {
     let mut s: State = State::new(64);
-    let mut msgs = [data::Message::default(); 26];
-    for m in msgs {
+    s.accounts[0].balance = 128;
+    let mut msgs = [data::Message::default(); 64];
+    for (i,m) in msgs.iter_mut().enumerate() {
+        m.kind = data::Kind::Transaction;
+        unsafe {
+            m.data.tx.to = [0u8; 32];
+            m.data.tx.to[7] = i as u8;
+            m.data.tx.from = [0u8; 32];
+            m.data.tx.fee = 1;
+            m.data.tx.amount = 1;
+        }
     }
     s.withdrawals(&mut msgs).expect("withdrawals");
+    assert_eq!(s.accounts[0].balance,0);
     s.deposits(&mut msgs).expect("deposits");
+    assert_eq!(s.accounts[0].balance,1);
 }
