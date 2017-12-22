@@ -14,9 +14,9 @@ pub struct State {
 
 impl State {
     fn new(size: usize) -> State {
-        return State{accounts: Vec::new(size)};
+        return State{accounts: Vec::with_capacity(size)};
     }
-    fn lookup(&self, key: [u8; 32]) -> &mut Account {
+    fn lookup(&mut self, key: [u8; 32]) -> &mut Account {
         return &mut self.accounts[0];
     }
     fn withdrawals(&mut self, msgs: &mut [data::Message]) {
@@ -25,13 +25,13 @@ impl State {
                 continue;
             }
             //TODO(aey) multiple threads
-            let acc = self.lookup(m.from);
-            let combined = *m.amount + m.fee;
-            if acc.balance > combined {
-                m.state = data::State::Withdrawn;
-                unsafe {
-                    atomic_xsub(acc.balance.as_mut_ptr(), 
-                                combined);
+            unsafe {
+                let acc = self.lookup(m.data.tx.from);
+                let combined = m.data.tx.amount + m.data.tx.fee;
+                if acc.balance > combined {
+                    m.state = data::State::Withdrawn;
+                        atomic_xsub((&mut acc.balance) as *mut u64,
+                                    combined);
                 }
             }
         }
@@ -42,9 +42,9 @@ impl State {
                 continue;
             }
             if m.state == data::State::Withdrawn {
-                let acc = self.lookup(m.data.tx.to);
-                //TODO(aey) multiple threads
                 unsafe {
+                    let acc = self.lookup(m.data.tx.to);
+                    //TODO(aey) multiple threads
                     atomic_xadd((&mut acc.balance) as *mut u64,
                                 m.data.tx.amount);
                 }
@@ -54,11 +54,11 @@ impl State {
     }
 }
 
-#[cfg(test)]
-use std::mem::uninitialized;
-
 #[test]
 fn state_test() {
     let mut s: State = State::new(64);
+    let mut msgs = [];
+    s.withdrawals(&mut msgs);
+    s.deposits(&mut msgs);
 }
 
