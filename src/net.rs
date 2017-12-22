@@ -23,7 +23,7 @@ pub fn read(socket: UdpSocket, messages: &mut [Message], num: &mut usize) -> Res
             if (max - *num) * sz < MAX_PACKET {
                 return Ok(());
             }
-            let buf = transmute(from_raw_parts(p, MAX_PACKET));
+            let buf = transmute(from_raw_parts(p as *mut u8, MAX_PACKET));
             let (nrecv, _from) = socket.recv_from(buf)?;
             *num = *num + nrecv/sz;
         }
@@ -38,7 +38,7 @@ pub fn write(socket: UdpSocket, messages: &[Message], num: &mut usize) -> Result
         unsafe {
             let p = &messages[*num] as *const Message;
             let bz = min(MAX_PACKET / sz, max - *num) * sz;
-            let buf = transmute(from_raw_parts(p, bz));
+            let buf = transmute(from_raw_parts(p as *const u8, bz));
             let sent_size = socket.send(buf)?;
             *num = *num + sent_size / sz;
         }
