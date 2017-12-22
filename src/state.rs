@@ -107,3 +107,12 @@ fn state_test() {
     s.deposits(&mut msgs).expect("deposits");
 }
 
+#[test]
+fn state_test2() {
+    let mut s: State = State::new(64);
+    let mut msgs = [data::Message::default(); 26];
+    for m in msgs {
+    }
+    s.withdrawals(&mut msgs).expect("withdrawals");
+    s.deposits(&mut msgs).expect("deposits");
+}

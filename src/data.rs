@@ -53,6 +53,14 @@ impl Default for Kind {
         return Kind::Invalid;
     }
 }
+impl Copy for Kind { }
+
+impl Clone for Kind {
+    fn clone(&self) -> Kind {
+        *self
+    }
+}
+
 
 #[derive(PartialEq)]
 #[repr(C)]
@@ -61,6 +69,13 @@ pub enum State {
     Unknown,
     Withdrawn,
     Deposited,
+}
+impl Copy for State { }
+
+impl Clone for State {
+    fn clone(&self) -> State {
+        *self
+    }
 }
 
 impl Default for State {
@@ -73,6 +88,7 @@ impl Default for State {
 pub const MAX_PACKET: usize = 1024*4;
 
 #[derive(Default)]
+#[derive(Copy,Clone)]
 #[repr(C)]
 pub struct Message {
     pub kind: Kind,
