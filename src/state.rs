@@ -102,6 +102,9 @@ impl State {
     }
 }
 
+#[cfg(test)]
+use test::Bencher;
+
 #[test]
 fn state_test() {
     let mut s: State = State::new(64);
@@ -110,10 +113,9 @@ fn state_test() {
     s.deposits(&mut msgs).expect("deposits");
 }
 
-#[test]
-fn state_test2() {
+#[bench]
+fn state_test2(b: &mut Bencher) {
     let mut s: State = State::new(64);
-    s.accounts[0].balance = 128;
     let mut msgs = [data::Message::default(); 64];
     for (i,m) in msgs.iter_mut().enumerate() {
         m.kind = data::Kind::Transaction;
@@ -125,8 +127,11 @@ fn state_test2() {
             m.data.tx.amount = 1;
         }
     }
-    s.withdrawals(&mut msgs).expect("withdrawals");
-    assert_eq!(s.accounts[0].balance,0);
-    s.deposits(&mut msgs).expect("deposits");
-    assert_eq!(s.accounts[0].balance,1);
+    b.iter(|| {
+        s.accounts[0].balance = 128;
+        s.withdrawals(&mut msgs).expect("withdrawals");
+        assert_eq!(s.accounts[0].balance,0);
+        s.deposits(&mut msgs).expect("deposits");
+        assert_eq!(s.accounts[0].balance,1);
+    })
 }
