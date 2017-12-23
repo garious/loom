@@ -135,3 +135,23 @@ fn state_test2(b: &mut Bencher) {
         assert_eq!(s.accounts[0].balance,1);
     })
 }
+
+#[test]
+fn state_test3() {
+    let mut s: State = State::new(2);
+    let mut msgs = [data::Message::default(); 3];
+    for (i,m) in msgs.iter_mut().enumerate() {
+        m.kind = data::Kind::Transaction;
+        unsafe {
+            m.data.tx.to = [0u8; 32];
+            m.data.tx.to[7] = i as u8;
+            m.data.tx.from = [0u8; 32];
+            m.data.tx.fee = 1;
+            m.data.tx.amount = 1;
+        }
+    }
+    s.accounts[0].balance = 128;
+    s.withdrawals(&mut msgs)?;
+    assert_eq!(ErrorKind::Other, rv.kind());
+    //assert_eq!("no space", rv.description());
+}
