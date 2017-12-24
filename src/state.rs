@@ -1,7 +1,7 @@
 use data;
 use core::intrinsics::{atomic_xadd, atomic_xsub};
 use result::{Result};
-use hasht::{HashT, find, Key};
+use hasht::{HashT, KeyT};
 
 #[derive(Default)]
 #[repr(C)]
@@ -10,25 +10,25 @@ struct Account {
     balance: u64,
 }
 
-impl Key<[u8;32]> {
+impl KeyT<[u8;32]> {
     fn unused(&self) {
         return self == [0u8; 32];
     }
-    fn start(&self ) -> usize {
-        let st = ((key[0] as u64) << ((7 - 0) * 8)) |
-                 ((key[1] as u64) << ((7 - 1) * 8)) |
-                 ((key[2] as u64) << ((7 - 2) * 8)) |
-                 ((key[3] as u64) << ((7 - 3) * 8)) |
-                 ((key[4] as u64) << ((7 - 4) * 8)) |
-                 ((key[5] as u64) << ((7 - 5) * 8)) |
-                 ((key[6] as u64) << ((7 - 6) * 8)) |
-                 ((key[7] as u64) << ((7 - 7) * 8)) ;
+    fn start(&self) -> usize {
+        let st = ((self[0] as u64) << ((7 - 0) * 8)) |
+                 ((self[1] as u64) << ((7 - 1) * 8)) |
+                 ((self[2] as u64) << ((7 - 2) * 8)) |
+                 ((self[3] as u64) << ((7 - 3) * 8)) |
+                 ((self[4] as u64) << ((7 - 4) * 8)) |
+                 ((self[5] as u64) << ((7 - 5) * 8)) |
+                 ((self[6] as u64) << ((7 - 6) * 8)) |
+                 ((self[7] as u64) << ((7 - 7) * 8)) ;
         return st as usize;
     }
 }
-impl HashT<Account> {
+impl HashT<Account,Key=[u8;32]> {
     type Key = [u8; 32];
-    fn key(&self) -> &Key {
+    fn key(&self) -> &Self::Key {
         return self.from;
     }
 }
@@ -49,7 +49,7 @@ impl State {
         let mut v = Vec::new();
         let size = self.accounts.len()*2;
         v.resize(size, Account::default());
-        HashT<Account>::migrate(self.accounts, &mut v)?;
+        HashT::<Account>::migrate(self.accounts, &mut v)?;
         self.accounts = v;
         return Ok(());
     }
@@ -65,40 +65,38 @@ impl State {
         }
         Self::apply(tmp, &mut self.accounts);
     }
-    fn populate(accounts: [Account]), msgs: &[data::Message], tmp: &mut [Account]) -> Result<()> {
+    fn populate(accounts: &[Account], msgs: &[data::Message], tmp: &mut [Account]) -> Result<()> {
         for m in msgs.iter() {
             unsafe {
-                let sf = HashT<Account>::find(accounts, msgs.from)?;
-                let st = HashT<Account>::find(accounts, msgs.to)?;
-                let df = HashT<Account>::find(tmp, msgs.from)?;
-                let dt = HashT<Account>::find(tmp, msgs.to)?;
+                let sf = HashT::<Account>::find(accounts, msgs.from)?;
+                let st = HashT::<Account>::find(accounts, msgs.to)?;
+                let df = HashT::<Account>::find(tmp, msgs.from)?;
+                let dt = HashT::<Account>::find(tmp, msgs.to)?;
                 tmp.get_unchecked(df) = accounts.get_unchecked(sf);
                 tmp.get_unchecked(dt) = accounts.get_unchecked(st);
             }
         }
         return Ok(());
     }
-
-    fn withdrawals(state: &mut [Account], msgs: &mut [data::Message]) -> Result<()> {
+    fn withdrawals(state: &mut [Account], msgs: &mut [data::Message], num: &mut usize) -> Result<()> {
         for m in msgs {
             if m.kind != data::Kind::Transaction {
                 continue;
             }
             //TODO(aey) multiple threads
             unsafe {
-                let fp = HashT<Update>::find(state, m.data.tx.from)?;
+                let fp = HashT::<Account>::find(state, m.data.tx.from)?;
                 let combined = m.data.tx.amount + m.data.tx.fee;
                 let acc = state.get_unchecked(fp);
                 if acc.balance >= combined {
                     m.state = data::State::Withdrawn;
                         atomic_xsub((&mut acc.balance) as *mut u64,
                                     combined as u64);
-                    let tp = HashT<Account>::find(state, m.data.tx.to)?;
-                    if state.get_unchecked(tp).unused() {
+                    let tp = HashT::<Account>::find(state, m.data.tx.to)?;
+                    if state.get_unchecked(tp).from.unused() {
                         *num = *num + 1;
                     }
                 }
-
             }
         }
         return Ok(());
@@ -110,7 +108,7 @@ impl State {
             }
             if m.state == data::State::Withdrawn {
                 unsafe {
-                    let pos = HashT<Account>::find(state, m.data.tx.to)?;
+                    let pos = HashT::<Account>::find(state, m.data.tx.to)?;
                     let acc = state.get_unchecked(pos);
                     //TODO(aey) multiple threads
                     atomic_xadd((&mut acc.balance) as *mut u64,
@@ -124,12 +122,13 @@ impl State {
         }
     }
     fn apply(state: &[Account], accounts: &mut [Account]) -> Result<()> {
+        //TODO(aey): multiple threads
         for t in state.iter() {
             unsafe {
                 if t.from.unsued() {
                     continue;
                 }
-                let ap = HashT<Account>::find(accounts, t.from)?;
+                let ap = HashT::<Account>::find(accounts, t.from)?;
                 let acc = accounts.get_unchecked(ap);
                 acc.balance = t.balance;
             }
@@ -165,10 +164,8 @@ fn state_test2(b: &mut Bencher) {
     }
     b.iter(|| {
         s.accounts[0].balance = 128;
-        s.withdrawals(&mut msgs).expect("withdrawals");
+        s.execute(&mut msgs).expect("execute");
         assert_eq!(s.accounts[0].balance,0);
-        s.deposits(&mut msgs).expect("deposits");
-        assert_eq!(s.accounts[0].balance,1);
     })
 }
 
@@ -187,8 +184,7 @@ fn state_test3() {
         }
     }
     s.accounts[0].balance = 128;
-    s.withdrawals(&mut msgs)?;
-    s.deposits(&mut msgs)?;
-    assert_eq!(ErrorKind::Other, rv.kind());
+    s.execute(&mut msgs)?;
+    //assert_eq!(ErrorKind::Other, rv.kind());
     //assert_eq!("no space", rv.description());
 }

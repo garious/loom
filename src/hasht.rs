@@ -1,20 +1,20 @@
-use result::{Result, NoSpace};
+use result::{Result, Error};
 
-pub trait Key<T: Eq> {
+pub trait KeyT<T: Eq> {
     fn unused(&self) -> bool;
-    fn start(key: &Self::Key) -> usize;
+    fn start(&self) -> usize;
 }
 
 pub trait HashT<T> {
-    type Key: Key;
+    type Key: KeyT<Self::Key>;
     fn key(&self) -> &Self::Key;
 
     fn find(tbl: &[Self], key: &Self::Key) -> Result<usize> {
         let num_elems = tbl.len();
-        let st = Key::start(key);
+        let st = key.start();
         let offset = st % num_elems;
         for i in [offset .. offset + num_elems] {
-            let pos = (i % num_elems);
+            let pos = i % num_elems;
             unsafe {
                 if tbl.get_unchecked(pos).key().unused() { 
                     return pos;
@@ -24,19 +24,20 @@ pub trait HashT<T> {
                 }
             }
         }
-        return Err(NoSpace)
+        return Err(Error::NoSpace)
     }
     fn migrate(src: &[Self], dst: &mut [Self]) -> Result<()> {
         for i in src.iter() {
-            if src.unused() {
+            if i.key().unused() {
                 continue;
             }
-            p = find(src, i.key())?;
-            dst[p] = i;
+            let p = Self::find(src, i.key())?;
+            unsafe {
+                *dst.get_unchecked(p) = i;
+            }
         }
         return Ok(());
     }
- 
 }
 
 
