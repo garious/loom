@@ -61,7 +61,6 @@ impl Clone for Kind {
     }
 }
 
-
 #[derive(PartialEq)]
 #[repr(C)]
 #[repr(u8)]
@@ -83,8 +82,6 @@ impl Default for State {
         return State::Unknown;
     }
 }
-
-
 pub const MAX_PACKET: usize = 1024*4;
 
 #[derive(Default)]
@@ -92,6 +89,7 @@ pub const MAX_PACKET: usize = 1024*4;
 #[repr(C)]
 pub struct Message {
     pub kind: Kind,
-    pub unused: [u8; 7],
+    pub state: State,
+    pub unused: [u8; 6],
     pub data: MessageData,
 }
