@@ -6,7 +6,7 @@ use std::mem::transmute;
 use std::mem::size_of;
 use std::slice::from_raw_parts;
 use data::{Message, MAX_PACKET};
-use result::{Result,fromIO};
+use result::{Result};
 
 pub fn server() -> Result<UdpSocket> {
     let ret = UdpSocket::bind("0.0.0.0:12345")?;
@@ -24,7 +24,7 @@ pub fn read(socket: UdpSocket, messages: &mut [Message], num: &mut usize) -> Res
                 return Ok(());
             }
             let buf = transmute(from_raw_parts(p as *mut u8, MAX_PACKET));
-            let (nrecv, _from) = fromIO(socket.recv_from(buf))?;
+            let (nrecv, _from) = socket.recv_from(buf)?;
             *num = *num + nrecv/sz;
         }
     }
@@ -39,7 +39,7 @@ pub fn write(socket: UdpSocket, messages: &[Message], num: &mut usize) -> Result
             let p = &messages[*num] as *const Message;
             let bz = min(MAX_PACKET / sz, max - *num) * sz;
             let buf = transmute(from_raw_parts(p as *const u8, bz));
-            let sent_size = fromIO(socket.send(buf))?;
+            let sent_size = socket.send(buf)?;
             *num = *num + sent_size / sz;
         }
     }
