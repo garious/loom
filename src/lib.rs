@@ -4,5 +4,6 @@
 pub mod net;
 pub mod data;
 pub mod state;
+pub mod hasht;
 extern crate core;
 extern crate test;

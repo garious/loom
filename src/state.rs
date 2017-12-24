@@ -1,8 +1,7 @@
 use data;
 use core::intrinsics::{atomic_xadd, atomic_xsub};
-use std::io::Result;
-use std::io::Error;
-use std::io::ErrorKind;
+use result::{Result};
+use hasht::{HashT, find};
 
 #[derive(Default)]
 #[repr(C)]
@@ -11,83 +10,109 @@ struct Account {
     balance: u64,
 }
 
+impl HashT<Account> {
+    type Key = [u8; 32];
+    fn key(&self) -> &Key {
+        return self.from;
+    }
+    fn unused(&self) {
+        return self.from == [0u8; 32];
+    }
+    fn start(key: &Key) -> usize {
+        let st = ((key[0] as u64) << ((7 - 0) * 8)) |
+                 ((key[1] as u64) << ((7 - 1) * 8)) |
+                 ((key[2] as u64) << ((7 - 2) * 8)) |
+                 ((key[3] as u64) << ((7 - 3) * 8)) |
+                 ((key[4] as u64) << ((7 - 4) * 8)) |
+                 ((key[5] as u64) << ((7 - 5) * 8)) |
+                 ((key[6] as u64) << ((7 - 6) * 8)) |
+                 ((key[7] as u64) << ((7 - 7) * 8)) ;
+        return st as usize;
+    }
+
+}
+
 #[repr(C)]
 pub struct State {
     accounts: Vec<Account>,
+    used: usize,
 }
 
 impl State {
     pub fn new(size: usize) -> State {
         let mut v = Vec::new();
-        v.resize_default(size);
-        return State{accounts: v};
-    }
-    fn key_to_hash(key: [u8; 32]) -> u64 {
-        return ((key[0] as u64) << ((7 - 0) * 8)) |
-               ((key[1] as u64) << ((7 - 1) * 8)) |
-               ((key[2] as u64) << ((7 - 2) * 8)) |
-               ((key[3] as u64) << ((7 - 3) * 8)) |
-               ((key[4] as u64) << ((7 - 4) * 8)) |
-               ((key[5] as u64) << ((7 - 5) * 8)) |
-               ((key[6] as u64) << ((7 - 6) * 8)) |
-               ((key[7] as u64) << ((7 - 7) * 8)) ;
-    }
-    fn lookup(&mut self, key: [u8; 32]) -> Result<&mut Account> {
-        let cap = self.accounts.capacity();
-        let hash = State::key_to_hash(key) as usize;
-        let ix = hash % cap;
-        let x_ptr = self.accounts.as_mut_ptr();
-        for i in ix .. cap {
-            unsafe {
-                let a = x_ptr.offset(i as isize);
-                if (*a).from == key {
-                    return Ok(&mut (*a));
-                }
-                if (*a).from == [0u8;32] {
-                    return Ok(&mut (*a));
-                }
-            }
-        }
-        for i in 0 .. ix {
-            unsafe {
-                let a = x_ptr.offset(i as isize);
-                if (*a).from == key {
-                    return Ok(&mut (*a));
-                }
-                if (*a).from == [0u8;32] {
-                    return Ok(&mut (*a));
-                }
-            }
-        }
-        return Err(Error::new(ErrorKind::Other, "no space"));
+        v.resize(size, Account::default());
+        return State{accounts: v, used: 0};
     }
 
-    pub fn withdrawals(&mut self, msgs: &mut [data::Message]) -> Result<()> {
+    pub fn double(&mut self) -> Result<()> {
+        let mut v = Vec::new();
+        let size = self.accounts.len()*2;
+        v.resize(size, Account::default());
+        HashT<Account>::migrate(self.accounts, &mut v)?;
+        self.accounts = v;
+        return Ok(());
+    }
+
+    pub fn populate(&mut self, msgs: &[data::Message], tmp: &mut [Account]) -> Result<()> {
+        for m in msgs {
+            unsafe {
+                let sf = HashT<Account>::find(self.accounts, msgs.from)?;
+                let st = HashT<Account>::find(self.accounts, msgs.to)?;
+                let df = HashT<Account>::find(tmp, msgs.from)?;
+                let dt = HashT<Account>::find(tmp, msgs.to)?;
+                tmp.get_unchecked(df) = self.accounts.get_unchecked(sf);
+                tmp.get_unchecked(dt) = self.accounts.get_unchecked(st);
+            }
+        }
+    }
+
+    pub fn execute(&mut self, msgs: &mut [data::Message]) -> Result<()> {
+        let num_new = 0;
+        let mut tmp = Vec::new();
+        tmp.resize(msgs.len()*2, Account::default());
+        self.populate(state, msgs, &mut tmp);
+        self.withdrawals(state, msgs, &mut num_new);
+        if ((4*(num_new + self.used))/3) > self.accounts.len() {
+            self.double()?
+        }
+        self.new_dests(state, msgs, &num);
+
+        self.deposits(msgs);
+    }
+
+    pub fn withdrawals(state: &mut [Account], msgs: &mut [data::Message]) -> Result<()> {
         for m in msgs {
             if m.kind != data::Kind::Transaction {
                 continue;
             }
             //TODO(aey) multiple threads
             unsafe {
-                let acc = self.lookup(m.data.tx.from)?;
+                let fp = HashT<Account>::find(m.data.tx.from)?;
                 let combined = m.data.tx.amount + m.data.tx.fee;
+                let acc = state.get_unchecked(fp);
                 if acc.balance >= combined {
                     m.state = data::State::Withdrawn;
                         atomic_xsub((&mut acc.balance) as *mut u64,
                                     combined);
+                    let tp = HashT<Account>::find(m.data.tx.to)?;
+                    if state.get_unchecked(tp).unused() {
+                        *num = *num + 1;
+                    }
                 }
+
             }
         }
         return Ok(());
     }
-    pub fn deposits(&mut self, msgs: &mut [data::Message]) -> Result<()> {
+    pub fn deposits(&mut self, msgs: &mut [data::Message]) {
         for m in msgs {
             if m.kind != data::Kind::Transaction {
                 continue;
             }
             if m.state == data::State::Withdrawn {
                 unsafe {
-                    let acc = self.lookup(m.data.tx.to)?;
+                    let acc = self.lookup(m.data.tx.to).expect("failed to find to address");
                     //TODO(aey) multiple threads
                     atomic_xadd((&mut acc.balance) as *mut u64,
                                 m.data.tx.amount);
@@ -98,7 +123,6 @@ impl State {
                 m.state = data::State::Deposited;
             }
         }
-        return Ok(());
     }
 }
 
@@ -152,6 +176,7 @@ fn state_test3() {
     }
     s.accounts[0].balance = 128;
     s.withdrawals(&mut msgs)?;
+    s.deposits(&mut msgs)?;
     assert_eq!(ErrorKind::Other, rv.kind());
     //assert_eq!("no space", rv.description());
 }

@@ -92,7 +92,6 @@ pub const MAX_PACKET: usize = 1024*4;
 #[repr(C)]
 pub struct Message {
     pub kind: Kind,
-    pub state: State,
-    pub unused: [u8; 6],
+    pub unused: [u8; 7],
     pub data: MessageData,
 }
