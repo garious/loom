@@ -1,7 +1,7 @@
 use data;
 use core::intrinsics::{atomic_xadd, atomic_xsub};
 use result::{Result};
-use hasht::{HashT, KeyT};
+use hasht::{HashT};
 
 #[derive(Default)]
 #[repr(C)]
@@ -10,25 +10,22 @@ struct Account {
     balance: u64,
 }
 
-impl KeyT<[u8;32]> {
+impl HashT<Account, [u8;32]> {
     fn unused(&self) {
-        return self == [0u8; 32];
+        return self.from == [0u8; 32];
     }
-    fn start(&self) -> usize {
-        let st = ((self[0] as u64) << ((7 - 0) * 8)) |
-                 ((self[1] as u64) << ((7 - 1) * 8)) |
-                 ((self[2] as u64) << ((7 - 2) * 8)) |
-                 ((self[3] as u64) << ((7 - 3) * 8)) |
-                 ((self[4] as u64) << ((7 - 4) * 8)) |
-                 ((self[5] as u64) << ((7 - 5) * 8)) |
-                 ((self[6] as u64) << ((7 - 6) * 8)) |
-                 ((self[7] as u64) << ((7 - 7) * 8)) ;
+    fn start(k: &[u8;32]) -> usize {
+        let st = ((k[0] as u64) << ((7 - 0) * 8)) |
+                 ((k[1] as u64) << ((7 - 1) * 8)) |
+                 ((k[2] as u64) << ((7 - 2) * 8)) |
+                 ((k[3] as u64) << ((7 - 3) * 8)) |
+                 ((k[4] as u64) << ((7 - 4) * 8)) |
+                 ((k[5] as u64) << ((7 - 5) * 8)) |
+                 ((k[6] as u64) << ((7 - 6) * 8)) |
+                 ((k[7] as u64) << ((7 - 7) * 8)) ;
         return st as usize;
     }
-}
-impl HashT<Account,Key=[u8;32]> {
-    type Key = [u8; 32];
-    fn key(&self) -> &Self::Key {
+    fn key(&self) -> &[u8;32] {
         return self.from;
     }
 }

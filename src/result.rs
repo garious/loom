@@ -9,9 +9,8 @@ pub enum Error {
 
 pub type Result<T> = core::result::Result<T, Error>;
 
-pub fn fromIO<T>(r: std::io::Result<T>) -> Result<T> {
-    match r {
-        Ok(t) => Ok(t),
-        Err(e) => Err(Error::IO(e)),
+impl core::convert::From<std::io::Error> for Error {
+    fn from(e: std::io::Error) -> Error {
+        return Error::IO(e);
     }
 }
