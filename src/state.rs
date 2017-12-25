@@ -1,7 +1,7 @@
 use data;
 use core::intrinsics::{atomic_xadd, atomic_xsub};
 use result::{Result};
-use hasht::{HashT};
+use hasht::{HashT, Key, Val};
 
 #[derive(Default, Copy, Clone)]
 #[repr(C)]
@@ -24,7 +24,7 @@ impl Key for [u8; 32] {
     }
  
     fn unused(&self) -> bool {
-        *self == [0u8; 32];
+        *self == [0u8; 32]
     }
 }
 
@@ -51,7 +51,7 @@ impl State {
         let mut v = Vec::new();
         let size = self.accounts.len()*2;
         v.resize(size, Account::default());
-        HashT::<Account>::migrate(self.accounts, &mut v)?;
+        AccountT::migrate(&self.accounts, &mut v)?;
         self.accounts = v;
         return Ok(());
     }
@@ -59,23 +59,23 @@ impl State {
         let num_new = 0;
         let mut tmp = Vec::new();
         tmp.resize(msgs.len()*4, Account::default());
-        Self::populate(self.accounts, msgs, &mut tmp)?;
-        Self::withdrawals(tmp, msgs, &mut num_new)?;
-        Self::deposits(tmp, msgs)?;
+        Self::populate(&self.accounts, msgs, &mut tmp)?;
+        Self::withdrawals(&mut tmp, msgs, &mut num_new)?;
+        Self::deposits(&mut tmp, msgs)?;
         if ((4*(num_new + self.used))/3) > self.accounts.len() {
             self.double()?
         }
-        Self::apply(tmp, &mut self.accounts);
+        return Self::apply(&tmp, &mut self.accounts);
     }
     fn populate(accounts: &[Account], msgs: &[data::Message], tmp: &mut [Account]) -> Result<()> {
         for m in msgs.iter() {
             unsafe {
-                let sf = HashT::<Account>::find(accounts, msgs.from)?;
-                let st = HashT::<Account>::find(accounts, msgs.to)?;
-                let df = HashT::<Account>::find(tmp, msgs.from)?;
-                let dt = HashT::<Account>::find(tmp, msgs.to)?;
-                tmp.get_unchecked(df) = accounts.get_unchecked(sf);
-                tmp.get_unchecked(dt) = accounts.get_unchecked(st);
+                let sf = AccountT::find(accounts, &m.data.tx.from)?;
+                let st = AccountT::find(accounts, &m.data.tx.to)?;
+                let df = AccountT::find(tmp, &m.data.tx.from)?;
+                let dt = AccountT::find(tmp, &m.data.tx.to)?;
+                *tmp.get_unchecked_mut(df) = *accounts.get_unchecked(sf);
+                *tmp.get_unchecked_mut(dt) = *accounts.get_unchecked(st);
             }
         }
         return Ok(());
@@ -87,14 +87,14 @@ impl State {
             }
             //TODO(aey) multiple threads
             unsafe {
-                let fp = HashT::<Account>::find(state, m.data.tx.from)?;
+                let fp = AccountT::find(state, &m.data.tx.from)?;
                 let combined = m.data.tx.amount + m.data.tx.fee;
                 let acc = state.get_unchecked(fp);
                 if acc.balance >= combined {
                     m.state = data::State::Withdrawn;
                         atomic_xsub((&mut acc.balance) as *mut u64,
                                     combined as u64);
-                    let tp = HashT::<Account>::find(state, m.data.tx.to)?;
+                    let tp = AccountT::find(state, &m.data.tx.to)?;
                     if state.get_unchecked(tp).from.unused() {
                         *num = *num + 1;
                     }
@@ -110,7 +110,7 @@ impl State {
             }
             if m.state == data::State::Withdrawn {
                 unsafe {
-                    let pos = HashT::<Account>::find(state, m.data.tx.to)?;
+                    let pos = AccountT::find(state, &m.data.tx.to)?;
                     let acc = state.get_unchecked(pos);
                     //TODO(aey) multiple threads
                     atomic_xadd((&mut acc.balance) as *mut u64,
@@ -127,10 +127,10 @@ impl State {
         //TODO(aey): multiple threads
         for t in state.iter() {
             unsafe {
-                if t.from.unsued() {
+                if t.from.unused() {
                     continue;
                 }
-                let ap = HashT::<Account>::find(accounts, t.from)?;
+                let ap = AccountT::find(accounts, &t.from)?;
                 let acc = accounts.get_unchecked(ap);
                 acc.balance = t.balance;
             }
