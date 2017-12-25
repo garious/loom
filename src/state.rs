@@ -33,7 +33,7 @@ impl Val<[u8;32]> for Account {
         return &self.from;
     }
 }
-pub type AccountT = HashT<[u8;32], Account>;
+type AccountT = HashT<[u8;32], Account>;
 
 #[repr(C)]
 pub struct State {
@@ -56,11 +56,12 @@ impl State {
         return Ok(());
     }
     pub fn execute(&mut self, msgs: &mut [data::Message]) -> Result<()> {
-        let num_new = 0;
+        let mut num_new = 0;
         let mut tmp = Vec::new();
         tmp.resize(msgs.len()*4, Account::default());
         Self::populate(&self.accounts, msgs, &mut tmp)?;
-        Self::withdrawals(&mut tmp, msgs, &mut num_new)?;
+        Self::withdrawals(&mut tmp, msgs)?;
+        Self::new_accounts(&mut tmp, msgs, &mut num_new)?;
         Self::deposits(&mut tmp, msgs)?;
         if ((4*(num_new + self.used))/3) > self.accounts.len() {
             self.double()?
@@ -80,7 +81,7 @@ impl State {
         }
         return Ok(());
     }
-    fn withdrawals(state: &mut [Account], msgs: &mut [data::Message], num: &mut usize) -> Result<()> {
+    fn withdrawals(state: &mut [Account], msgs: &mut [data::Message]) -> Result<()> {
         for m in msgs {
             if m.kind != data::Kind::Transaction {
                 continue;
@@ -89,11 +90,24 @@ impl State {
             unsafe {
                 let fp = AccountT::find(state, &m.data.tx.from)?;
                 let combined = m.data.tx.amount + m.data.tx.fee;
-                let acc = state.get_unchecked(fp);
+                let mut acc = state.get_unchecked_mut(fp);
                 if acc.balance >= combined {
                     m.state = data::State::Withdrawn;
                         atomic_xsub((&mut acc.balance) as *mut u64,
                                     combined as u64);
+                }
+            }
+        }
+        return Ok(());
+    }
+    fn new_accounts(state: &mut [Account], msgs: &mut [data::Message], num: &mut usize) -> Result<()> {
+        for m in msgs {
+            if m.kind != data::Kind::Transaction {
+                continue;
+            }
+            //TODO(aey) multiple threads
+            unsafe {
+                if m.state == data::State::Withdrawn {
                     let tp = AccountT::find(state, &m.data.tx.to)?;
                     if state.get_unchecked(tp).from.unused() {
                         *num = *num + 1;
@@ -103,6 +117,7 @@ impl State {
         }
         return Ok(());
     }
+
     fn deposits(state: &mut [Account], msgs: &mut [data::Message]) -> Result<()> {
         for m in msgs {
             if m.kind != data::Kind::Transaction {
@@ -111,7 +126,7 @@ impl State {
             if m.state == data::State::Withdrawn {
                 unsafe {
                     let pos = AccountT::find(state, &m.data.tx.to)?;
-                    let acc = state.get_unchecked(pos);
+                    let mut acc = state.get_unchecked_mut(pos);
                     //TODO(aey) multiple threads
                     atomic_xadd((&mut acc.balance) as *mut u64,
                                 m.data.tx.amount);
@@ -122,6 +137,7 @@ impl State {
                 m.state = data::State::Deposited;
             }
         }
+        return Ok(());
     }
     fn apply(state: &[Account], accounts: &mut [Account]) -> Result<()> {
         //TODO(aey): multiple threads
@@ -131,7 +147,7 @@ impl State {
                     continue;
                 }
                 let ap = AccountT::find(accounts, &t.from)?;
-                let acc = accounts.get_unchecked(ap);
+                let mut acc = accounts.get_unchecked_mut(ap);
                 acc.balance = t.balance;
             }
         }
@@ -146,8 +162,7 @@ use test::Bencher;
 fn state_test() {
     let mut s: State = State::new(64);
     let mut msgs = [];
-    s.withdrawals(&mut msgs).expect("withdrawals");
-    s.deposits(&mut msgs).expect("deposits");
+    s.execute(&mut msgs).expect("execute");
 }
 
 #[bench]
@@ -186,7 +201,7 @@ fn state_test3() {
         }
     }
     s.accounts[0].balance = 128;
-    s.execute(&mut msgs)?;
+    s.execute(&mut msgs).expect("execute");
     //assert_eq!(ErrorKind::Other, rv.kind());
     //assert_eq!("no space", rv.description());
 }
