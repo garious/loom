@@ -1,6 +1,7 @@
 use std;
 use core;
 
+#[derive(Debug)]
 pub enum Error {
     IO(std::io::Error),
     NoSpace,
