@@ -49,7 +49,7 @@ impl State {
         let t = Vec::new();
         return State{accounts: v, tmp: t, used: 0};
     }
-    pub fn double(&mut self) -> Result<()> {
+    fn double(&mut self) -> Result<()> {
         let mut v = Vec::new();
         let size = self.accounts.len()*2;
         v.resize(size, Account::default());
@@ -58,6 +58,7 @@ impl State {
         return Ok(());
     }
     pub fn execute(&mut self, msgs: &mut [data::Message]) -> Result<()> {
+        //TODO(aey): this is slow, make it fast, we should just do one scan
         let mut num_new = 0;
         self.tmp.clear();
         self.tmp.resize(msgs.len()*4, Account::default());
