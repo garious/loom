@@ -14,7 +14,7 @@ pub fn server() -> Result<UdpSocket> {
     return Ok(ret);
 }
 
-pub fn read(socket: UdpSocket, messages: &mut [Message], num: &mut usize) -> Result<()> {
+pub fn read(socket: &UdpSocket, messages: &mut [Message], num: &mut usize) -> Result<()> {
     let sz = size_of::<Message>();
     let max = messages.len();
     while *num < max {
@@ -31,7 +31,7 @@ pub fn read(socket: UdpSocket, messages: &mut [Message], num: &mut usize) -> Res
     return Ok(());
 }
 
-pub fn write(socket: UdpSocket, messages: &[Message], num: &mut usize) -> Result<()> {
+pub fn write(socket: &UdpSocket, messages: &[Message], num: &mut usize) -> Result<()> {
     let sz = size_of::<Message>();
     let max = messages.len();
     while *num < max {
@@ -55,10 +55,10 @@ fn server_test() {
     let max = MAX_PACKET/sz;
     let mut m = [Message::default(); 26];
     let mut num = 0;
-    write(client, &m[0..max], &mut num).expect("write");
+    write(&client, &m[0..max], &mut num).expect("write");
     assert!(num == max);
     num = 0;
-    read(srv, &mut m, &mut num).expect("read");
+    read(&srv, &mut m, &mut num).expect("read");
     assert!(num == max);
 }
 
