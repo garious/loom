@@ -44,8 +44,8 @@ impl Default for MessageData {
 pub enum Kind {
     Invalid,
     Transaction,
-    POH,
     Signature,
+    GossipSubscribe,
 }
 
 impl Default for Kind {

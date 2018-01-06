@@ -1,5 +1,4 @@
 use data;
-use core::intrinsics::{atomic_xadd, atomic_xsub};
 use result::{Result};
 use hasht::{HashT, Key, Val};
 
@@ -24,7 +23,13 @@ impl Key for [u8; 32] {
     }
  
     fn unused(&self) -> bool {
-        *self == [0u8; 32]
+        //TODO(aey): *self == [0u8; 32] should work
+        for i in self.iter() {
+            if *i != 0 {
+                return false;
+            }
+        }
+        return true;
     }
 }
 
@@ -42,22 +47,26 @@ pub struct State {
     used: usize,
 }
 
-struct Loc {
-    tacc: usize,
-    facc: usize,
-    ttmp: usize,
-    ftmp: usize,
-}
-
-
 impl State {
     pub fn new(size: usize) -> State {
         let mut v = Vec::new();
+        v.clear();
         v.resize(size, Account::default());
+        for i in v.iter() {
+            if i.from.unused() {
+                assert!(i.balance == 0);
+            }
+        }
         let t = Vec::new();
-        return State{accounts: v, tmp: t, used: 0};
+        let rv = State{accounts: v, tmp: t, used: 0};
+        for v in rv.accounts.iter() {
+            if v.from.unused() {
+                assert!(v.balance == 0);
+            }
+        }
+        return rv;
     }
-    fn double(&mut self) -> Result<()> {
+    pub fn double(&mut self) -> Result<()> {
         let mut v = Vec::new();
         let size = self.accounts.len()*2;
         v.resize(size, Account::default());
@@ -66,76 +75,102 @@ impl State {
         return Ok(());
     }
     pub fn execute(&mut self, msgs: &mut [data::Message]) -> Result<()> {
-        //TODO(aey): this is slow, make it fast, we should just do one scan
         let mut num_new = 0;
         self.tmp.clear();
         self.tmp.resize(msgs.len()*4, Account::default());
-        for m in msgs.iter_mut() {
-            //TODO(aey) multiple threads
-            if m.kind != data::Kind::Transaction {
-                continue;
-            }
-            unsafe {
-                let fa = AccountT::find(&self.accounts, &m.data.tx.from)?;
-                let ta = AccountT::find(&self.accounts, &m.data.tx.to)?;
-                let ft = AccountT::find(&self.tmp, &m.data.tx.from)?;
-                let tt = AccountT::find(&self.tmp, &m.data.tx.to)?;
-                let l = Loc{facc:fa, tacc:ta, ftmp:ft, ttmp:tt};
-                Self::populate(&self.accounts, &l, &mut self.tmp);
-                Self::withdrawals(&mut self.tmp, &mut *m, &l);
-                Self::new_accounts(&mut self.tmp, &mut *m, &l, &mut num_new);
-                Self::deposits(&mut self.tmp, &mut *m, &l);
-            }
-        }
+        Self::populate(&self.accounts, msgs, &mut self.tmp)?;
+        Self::withdrawals(&mut self.tmp, msgs)?;
+        Self::new_accounts(&mut self.tmp, msgs, &mut num_new)?;
+        Self::deposits(&mut self.tmp, msgs)?;
         if ((4*(num_new + self.used))/3) > self.accounts.len() {
             self.double()?
         }
         return Self::apply(&self.tmp, &mut self.accounts);
     }
-    unsafe fn populate(accounts: &[Account], l: &Loc, tmp: &mut [Account]) {
-        *tmp.get_unchecked_mut(l.ftmp) = *accounts.get_unchecked(l.facc);
-        *tmp.get_unchecked_mut(l.ttmp) = *accounts.get_unchecked(l.tacc);
+    fn populate(accounts: &[Account], msgs: &[data::Message], tmp: &mut [Account]) -> Result<()> {
+        for m in msgs.iter() {
+            unsafe {
+                let sf = AccountT::find(accounts, &m.data.tx.from)?;
+                let st = AccountT::find(accounts, &m.data.tx.to)?;
+                let df = AccountT::find(tmp, &m.data.tx.from)?;
+                let dt = AccountT::find(tmp, &m.data.tx.to)?;
+                *tmp.get_unchecked_mut(df) = *accounts.get_unchecked(sf);
+                *tmp.get_unchecked_mut(dt) = *accounts.get_unchecked(st);
+            }
+        }
+        return Ok(());
     }
-    unsafe fn withdrawals(state: &mut [Account], m: &mut data::Message, l: &Loc) {
-       let combined = m.data.tx.amount + m.data.tx.fee;
-       let acc = state.get_unchecked_mut(l.ftmp);
-       if acc.balance >= combined {
-           m.state = data::State::Withdrawn;
-               atomic_xsub((&mut acc.balance) as *mut u64,
-                           combined as u64);
-       }
-    }
-    fn new_accounts(state: &mut [Account], m: &mut data::Message, l: &Loc, num: &mut usize) {
-        unsafe {
-            if m.state == data::State::Withdrawn {
-                if state.get_unchecked(l.ttmp).from.unused() {
-                    *num = *num + 1;
+    fn withdrawals(state: &mut [Account], msgs: &mut [data::Message]) -> Result<()> {
+        for m in msgs {
+            if m.kind != data::Kind::Transaction {
+                continue;
+            }
+            //TODO(aey) multiple threads
+            unsafe {
+                let fp = AccountT::find(state, &m.data.tx.from)?;
+                let combined = m.data.tx.amount + m.data.tx.fee;
+                let mut acc = state.get_unchecked_mut(fp);
+                if acc.from != m.data.tx.from {
+                    continue;
+                }
+                assert!(false);
+                if acc.balance >= combined {
+                    m.state = data::State::Withdrawn;
+                    acc.balance = acc.balance - combined;
                 }
             }
         }
+        return Ok(());
+    }
+    fn new_accounts(state: &mut [Account], msgs: &mut [data::Message], num: &mut usize) -> Result<()> {
+        for m in msgs {
+            if m.kind != data::Kind::Transaction {
+                continue;
+            }
+            //TODO(aey) multiple threads
+            unsafe {
+                if m.state == data::State::Withdrawn {
+                    let tp = AccountT::find(state, &m.data.tx.to)?;
+                    if state.get_unchecked(tp).from.unused() {
+                        *num = *num + 1;
+                    }
+                }
+            }
+        }
+        return Ok(());
     }
 
-    fn deposits(state: &mut [Account], m: &mut data::Message, l: &Loc) {
-        if m.state == data::State::Withdrawn {
-            unsafe {
-                let acc = state.get_unchecked_mut(l.ttmp);
-                //TODO(aey) multiple threads
-                atomic_xadd((&mut acc.balance) as *mut u64,
-                            m.data.tx.amount);
-                if acc.from == [0u8;32] {
-                    acc.from = m.data.tx.to;
-                }
+    fn deposits(state: &mut [Account], msgs: &mut [data::Message]) -> Result<()> {
+        for m in msgs {
+            if m.kind != data::Kind::Transaction {
+                continue;
             }
-            m.state = data::State::Deposited;
+            if m.state == data::State::Withdrawn {
+                unsafe {
+                    let pos = AccountT::find(state, &m.data.tx.to)?;
+                    let mut acc = state.get_unchecked_mut(pos);
+                    //TODO(aey) multiple threads
+                    acc.balance = acc.balance + m.data.tx.amount;
+                    if acc.from.unused() {
+                        acc.from = m.data.tx.to;
+                        assert!(m.data.tx.to.unused() == false);
+                        assert!(acc.from.unused() == false);
+                    }
+                }
+                m.state = data::State::Deposited;
+            }
         }
+        return Ok(());
     }
     fn apply(state: &[Account], accounts: &mut [Account]) -> Result<()> {
         //TODO(aey): multiple threads
         for t in state.iter() {
             unsafe {
                 if t.from.unused() {
+                    assert!(t.balance == 0);
                     continue;
                 }
+                println!("{:?} {:?}", t.from, t.balance);
                 let ap = AccountT::find(accounts, &t.from)?;
                 let mut acc = accounts.get_unchecked_mut(ap);
                 acc.balance = t.balance;
@@ -157,21 +192,28 @@ fn state_test() {
 
 #[bench]
 fn state_test2(b: &mut Bencher) {
-    let mut s: State = State::new(64);
-    let mut msgs = [data::Message::default(); 64];
+    const NUM: usize = 2usize;
+    let mut s: State = State::new(NUM);
+    let mut msgs = [data::Message::default(); NUM];
     for (i,m) in msgs.iter_mut().enumerate() {
         m.kind = data::Kind::Transaction;
         unsafe {
-            m.data.tx.to = [0u8; 32];
-            m.data.tx.to[7] = i as u8;
-            m.data.tx.from = [0u8; 32];
+            m.data.tx.to = [255u8; 32];
+            m.data.tx.to[0] = i as u8;
+            m.data.tx.from = [255u8; 32];
             m.data.tx.fee = 1;
             m.data.tx.amount = 1;
+            assert!(m.data.tx.to.unused() == false);
+            assert!(m.data.tx.from.unused() == false);
         }
     }
+    let fp = AccountT::find(&s.accounts, &[255u8; 32]).expect("find");
+    s.accounts[fp].from = [255u8;32];
     b.iter(|| {
-        s.accounts[0].balance = 128;
+        println!("start {:?}", fp);
+        s.accounts[fp].balance = 128;
         s.execute(&mut msgs).expect("execute");
-        assert_eq!(s.accounts[0].balance,0);
+        assert_eq!(s.accounts[fp].balance,0);
+        println!("done");
     })
 }
