@@ -190,6 +190,32 @@ fn state_test() {
     s.execute(&mut msgs).expect("execute");
 }
 
+#[test]
+fn populate_test() {
+    const NUM: usize = 2usize;
+    let mut s: State = State::new(NUM);
+    let mut msgs = [data::Message::default(); NUM];
+    for (i,m) in msgs.iter_mut().enumerate() {
+        m.kind = data::Kind::Transaction;
+        unsafe {
+            m.data.tx.to = [255u8; 32];
+            m.data.tx.to[0] = i as u8;
+            m.data.tx.from = [255u8; 32];
+            m.data.tx.fee = 1;
+            m.data.tx.amount = 1;
+            assert!(m.data.tx.to.unused() == false);
+            assert!(m.data.tx.from.unused() == false);
+        }
+    }
+    s.tmp.clear();
+    s.tmp.resize(msgs.len()*4, Account::default());
+    State::populate(&s.accounts, &msgs, &mut s.tmp).expect("populate");
+    for i in s.tmp {
+        assert!(i.balance == 0);
+        assert!(i.key().unused());
+    }
+}
+
 #[bench]
 fn state_test2(b: &mut Bencher) {
     const NUM: usize = 2usize;
