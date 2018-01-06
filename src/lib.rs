@@ -6,6 +6,6 @@ pub mod data;
 pub mod state;
 pub mod hasht;
 pub mod result;
-pub mod spool;
+//pub mod spool;
 extern crate core;
 extern crate test;
