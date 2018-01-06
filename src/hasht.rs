@@ -23,7 +23,7 @@ impl<K, V> HashT<K, V>
         let num_elems = tbl.len();
         let st = key.start();
         for i in 0 .. num_elems {
-            let pos = (st + i) % num_elems;
+            let pos = st.wrapping_add(i) % num_elems;
             unsafe {
                 let k = tbl.get_unchecked(pos).key();
                 if k.unused() || k == key { 
@@ -106,8 +106,9 @@ mod test {
         assert_eq!(UsizeT::find(&v, &1usize).unwrap(), a);
         assert_eq!(UsizeT::find(&v, &2usize).unwrap(), b);
         assert_eq!(UsizeT::find(&v, &3usize).unwrap_err(), Error::NoSpace);
+        assert_eq!(UsizeT::find(&v, &usize::max_value()).unwrap_err(),
+                   Error::NoSpace);
     }
-
 }
 
 

@@ -79,7 +79,7 @@ impl State {
         self.tmp.clear();
         self.tmp.resize(msgs.len()*4, Account::default());
         Self::populate(&self.accounts, msgs, &mut self.tmp)?;
-        Self::withdrawals(&mut self.tmp, msgs)?;
+        Self::charges(&mut self.tmp, msgs)?;
         Self::new_accounts(&mut self.tmp, msgs, &mut num_new)?;
         Self::deposits(&mut self.tmp, msgs)?;
         if ((4*(num_new + self.used))/3) > self.accounts.len() {
@@ -100,7 +100,7 @@ impl State {
         }
         return Ok(());
     }
-    fn withdrawals(state: &mut [Account], msgs: &mut [data::Message]) -> Result<()> {
+    fn charges(state: &mut [Account], msgs: &mut [data::Message]) -> Result<()> {
         for m in msgs {
             if m.kind != data::Kind::Transaction {
                 continue;
@@ -216,8 +216,8 @@ fn populate_test() {
     }
 }
 
-#[bench]
-fn state_test2(b: &mut Bencher) {
+#[test]
+fn populate_test2() {
     const NUM: usize = 2usize;
     let mut s: State = State::new(NUM);
     let mut msgs = [data::Message::default(); NUM];
@@ -233,13 +233,48 @@ fn state_test2(b: &mut Bencher) {
             assert!(m.data.tx.from.unused() == false);
         }
     }
-    let fp = AccountT::find(&s.accounts, &[255u8; 32]).expect("find");
-    s.accounts[fp].from = [255u8;32];
-    b.iter(|| {
-        println!("start {:?}", fp);
-        s.accounts[fp].balance = 128;
-        s.execute(&mut msgs).expect("execute");
-        assert_eq!(s.accounts[fp].balance,0);
-        println!("done");
-    })
+    s.tmp.clear();
+    s.tmp.resize(msgs.len()*4, Account::default());
+    State::populate(&s.accounts, &msgs, &mut s.tmp).expect("populate");
+    for m in msgs.iter() {
+        unsafe {
+            let p = AccountT::find(&s.accounts, &m.data.tx.to).expect("find");
+            s.accounts[p].from = m.data.tx.to;
+        }
+    }
+    State::populate(&s.accounts, &msgs, &mut s.tmp).expect("populate");
+    for m in msgs.iter() {
+        unsafe {
+            AccountT::find(&s.tmp, &m.data.tx.to).expect("find");
+        }
+    }
 }
+
+
+//#[bench]
+//fn state_test2(b: &mut Bencher) {
+//    const NUM: usize = 2usize;
+//    let mut s: State = State::new(NUM);
+//    let mut msgs = [data::Message::default(); NUM];
+//    for (i,m) in msgs.iter_mut().enumerate() {
+//        m.kind = data::Kind::Transaction;
+//        unsafe {
+//            m.data.tx.to = [255u8; 32];
+//            m.data.tx.to[0] = i as u8;
+//            m.data.tx.from = [255u8; 32];
+//            m.data.tx.fee = 1;
+//            m.data.tx.amount = 1;
+//            assert!(m.data.tx.to.unused() == false);
+//            assert!(m.data.tx.from.unused() == false);
+//        }
+//    }
+//    let fp = AccountT::find(&s.accounts, &[255u8; 32]).expect("find");
+//    s.accounts[fp].from = [255u8;32];
+//    b.iter(|| {
+//        println!("start {:?}", fp);
+//        s.accounts[fp].balance = 128;
+//        s.execute(&mut msgs).expect("execute");
+//        assert_eq!(s.accounts[fp].balance,0);
+//        println!("done");
+//    })
+//}
