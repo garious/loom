@@ -88,13 +88,21 @@ impl State {
         return Self::apply(&self.tmp, &mut self.accounts);
     }
     fn populate(accounts: &[Account], msgs: &[data::Message], tmp: &mut [Account]) -> Result<()> {
+        println!("start populate");
         for m in msgs.iter() {
+            println!("start m");
             unsafe {
+                println!("try find sf {:?}", m.data.tx.from);
                 let sf = AccountT::find(accounts, &m.data.tx.from)?;
-                let st = AccountT::find(accounts, &m.data.tx.to)?;
+                println!("find df {:?}", m.data.tx.from);
                 let df = AccountT::find(tmp, &m.data.tx.from)?;
-                let dt = AccountT::find(tmp, &m.data.tx.to)?;
+                println!("find df");
                 *tmp.get_unchecked_mut(df) = *accounts.get_unchecked(sf);
+
+                let st = AccountT::find(accounts, &m.data.tx.to)?;
+                println!("find st");
+                let dt = AccountT::find(tmp, &m.data.tx.to)?;
+                println!("find dt");
                 *tmp.get_unchecked_mut(dt) = *accounts.get_unchecked(st);
             }
         }
@@ -219,7 +227,7 @@ fn populate_test() {
 #[test]
 fn populate_test2() {
     const NUM: usize = 2usize;
-    let mut s: State = State::new(NUM);
+    let mut s: State = State::new(NUM*2);
     let mut msgs = [data::Message::default(); NUM];
     for (i,m) in msgs.iter_mut().enumerate() {
         m.kind = data::Kind::Transaction;
@@ -240,6 +248,8 @@ fn populate_test2() {
         unsafe {
             let p = AccountT::find(&s.accounts, &m.data.tx.to).expect("find");
             s.accounts[p].from = m.data.tx.to;
+            AccountT::find(&s.accounts, &m.data.tx.to).expect("find");
+            AccountT::find(&s.accounts, &m.data.tx.from).expect("find");
         }
     }
     State::populate(&s.accounts, &msgs, &mut s.tmp).expect("populate");
@@ -251,30 +261,30 @@ fn populate_test2() {
 }
 
 
-//#[bench]
-//fn state_test2(b: &mut Bencher) {
-//    const NUM: usize = 2usize;
-//    let mut s: State = State::new(NUM);
-//    let mut msgs = [data::Message::default(); NUM];
-//    for (i,m) in msgs.iter_mut().enumerate() {
-//        m.kind = data::Kind::Transaction;
-//        unsafe {
-//            m.data.tx.to = [255u8; 32];
-//            m.data.tx.to[0] = i as u8;
-//            m.data.tx.from = [255u8; 32];
-//            m.data.tx.fee = 1;
-//            m.data.tx.amount = 1;
-//            assert!(m.data.tx.to.unused() == false);
-//            assert!(m.data.tx.from.unused() == false);
-//        }
-//    }
-//    let fp = AccountT::find(&s.accounts, &[255u8; 32]).expect("find");
-//    s.accounts[fp].from = [255u8;32];
-//    b.iter(|| {
-//        println!("start {:?}", fp);
-//        s.accounts[fp].balance = 128;
-//        s.execute(&mut msgs).expect("execute");
-//        assert_eq!(s.accounts[fp].balance,0);
-//        println!("done");
-//    })
-//}
+#[bench]
+fn state_test2(b: &mut Bencher) {
+    const NUM: usize = 2usize;
+    let mut s: State = State::new(NUM*2);
+    let mut msgs = [data::Message::default(); NUM];
+    for (i,m) in msgs.iter_mut().enumerate() {
+        m.kind = data::Kind::Transaction;
+        unsafe {
+            m.data.tx.to = [255u8; 32];
+            m.data.tx.to[0] = i as u8;
+            m.data.tx.from = [255u8; 32];
+            m.data.tx.fee = 1;
+            m.data.tx.amount = 1;
+            assert!(m.data.tx.to.unused() == false);
+            assert!(m.data.tx.from.unused() == false);
+        }
+    }
+    let fp = AccountT::find(&s.accounts, &[255u8; 32]).expect("find");
+    s.accounts[fp].from = [255u8;32];
+    b.iter(|| {
+        println!("start {:?}", fp);
+        s.accounts[fp].balance = 128;
+        s.execute(&mut msgs).expect("execute");
+        assert_eq!(s.accounts[fp].balance,0);
+        println!("done");
+    })
+}
