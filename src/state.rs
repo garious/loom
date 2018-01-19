@@ -189,11 +189,8 @@ fn state_test() {
     s.execute(&mut msgs).expect("e");
 }
 
-#[test]
-fn populate_test() {
-    const NUM: usize = 2usize;
-    let mut s: State = State::new(NUM);
-    let mut msgs = [data::Message::default(); NUM];
+#[cfg(test)]
+fn init_msgs(msgs: &mut [data::Message]) {
     for (i,m) in msgs.iter_mut().enumerate() {
         m.kind = data::Kind::Transaction;
         unsafe {
@@ -206,6 +203,13 @@ fn populate_test() {
             assert!(m.data.tx.from.unused() == false);
         }
     }
+}
+#[test]
+fn populate_test() {
+    const NUM: usize = 2usize;
+    let mut s: State = State::new(NUM);
+    let mut msgs = [data::Message::default(); NUM];
+    init_msgs(&mut msgs);
     s.tmp.clear();
     s.tmp.resize(msgs.len()*4, Account::default());
     State::populate(&s.accounts, &msgs, &mut s.tmp).expect("p");
@@ -220,18 +224,7 @@ fn populate_test2() {
     const NUM: usize = 2usize;
     let mut s: State = State::new(NUM*2);
     let mut msgs = [data::Message::default(); NUM];
-    for (i,m) in msgs.iter_mut().enumerate() {
-        m.kind = data::Kind::Transaction;
-        unsafe {
-            m.data.tx.to = [255u8; 32];
-            m.data.tx.to[0] = i as u8;
-            m.data.tx.from = [255u8; 32];
-            m.data.tx.fee = 1;
-            m.data.tx.amount = 1;
-            assert!(m.data.tx.to.unused() == false);
-            assert!(m.data.tx.from.unused() == false);
-        }
-    }
+    init_msgs(&mut msgs);
     s.tmp.clear();
     s.tmp.resize(msgs.len()*4, Account::default());
     State::populate(&s.accounts, &msgs, &mut s.tmp).expect("p");
@@ -257,18 +250,7 @@ fn charge_test() {
     const NUM: usize = 2usize;
     let mut s: State = State::new(NUM*2);
     let mut msgs = [data::Message::default(); NUM];
-    for (i,m) in msgs.iter_mut().enumerate() {
-        m.kind = data::Kind::Transaction;
-        unsafe {
-            m.data.tx.to = [255u8; 32];
-            m.data.tx.to[0] = i as u8;
-            m.data.tx.from = [255u8; 32];
-            m.data.tx.fee = 1;
-            m.data.tx.amount = 1;
-            assert!(m.data.tx.to.unused() == false);
-            assert!(m.data.tx.from.unused() == false);
-        }
-    }
+    init_msgs(&mut msgs);
     s.tmp.clear();
     s.tmp.resize(msgs.len()*4, Account::default());
 
@@ -301,18 +283,7 @@ fn new_accounts_test() {
     const NUM: usize = 2usize;
     let mut s: State = State::new(NUM*2);
     let mut msgs = [data::Message::default(); NUM];
-    for (i,m) in msgs.iter_mut().enumerate() {
-        m.kind = data::Kind::Transaction;
-        unsafe {
-            m.data.tx.to = [255u8; 32];
-            m.data.tx.to[0] = i as u8;
-            m.data.tx.from = [255u8; 32];
-            m.data.tx.fee = 1;
-            m.data.tx.amount = 1;
-            assert!(m.data.tx.to.unused() == false);
-            assert!(m.data.tx.from.unused() == false);
-        }
-    }
+    init_msgs(&mut msgs);
     s.tmp.clear();
     s.tmp.resize(msgs.len()*4, Account::default());
 
@@ -336,18 +307,7 @@ fn state_test2(b: &mut Bencher) {
     const NUM: usize = 2usize;
     let mut s: State = State::new(NUM*2);
     let mut msgs = [data::Message::default(); NUM];
-    for (i,m) in msgs.iter_mut().enumerate() {
-        m.kind = data::Kind::Transaction;
-        unsafe {
-            m.data.tx.to = [255u8; 32];
-            m.data.tx.to[0] = i as u8;
-            m.data.tx.from = [255u8; 32];
-            m.data.tx.fee = 1;
-            m.data.tx.amount = 1;
-            assert!(m.data.tx.to.unused() == false);
-            assert!(m.data.tx.from.unused() == false);
-        }
-    }
+    init_msgs(&mut msgs);
     let fp = AccountT::find(&s.accounts, &[255u8; 32]).expect("f");
     s.accounts[fp].from = [255u8;32];
     b.iter(|| {
