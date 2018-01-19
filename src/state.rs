@@ -284,7 +284,7 @@ fn charge_test() {
     State::charges(&mut s.tmp, &mut msgs).expect("c");
     for m in msgs.iter() {
         assert!(m.state == data::State::Withdrawn);
-    
+    }
 }
 
 
