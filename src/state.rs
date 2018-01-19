@@ -300,7 +300,34 @@ fn new_accounts_test() {
     assert_eq!(num, NUM); 
 }
 
+#[test]
+fn deposits_test() {
+    const NUM: usize = 2usize;
+    let mut s: State = State::new(NUM*2);
+    let mut msgs = [data::Message::default(); NUM];
+    init_msgs(&mut msgs);
+    s.tmp.clear();
+    s.tmp.resize(msgs.len()*4, Account::default());
 
+    let p = AccountT::find(&s.accounts, &[255u8;32]).expect("f");
+    s.accounts[p].from = [255u8;32];
+    s.accounts[p].balance = (NUM*2) as u64;
+
+    State::populate(&s.accounts, &msgs, &mut s.tmp).expect("p");
+    State::charges(&mut s.tmp, &mut msgs).expect("c");
+    let p = AccountT::find(&s.tmp, &[255u8;32]).expect("f");
+    assert_eq!(s.tmp[p].from, [255u8;32]);
+    assert_eq!(s.tmp[p].balance, 0);
+    State::deposits(&mut s.tmp, &mut msgs).expect("d");
+    for m in msgs.iter_mut() {
+        unsafe {
+            let p = AccountT::find(&s.tmp, &m.data.tx.to).expect("f");
+            assert_eq!(s.tmp[p].from, m.data.tx.to);
+            assert!(m.state == data::State::Deposited);
+            assert_eq!(s.tmp[p].balance, 1);
+        }
+    }
+}
 
 #[bench]
 fn state_test2(b: &mut Bencher) {
