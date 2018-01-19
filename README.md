@@ -2,7 +2,7 @@ loom
 =====
 
 whitepaper
-https://www.overleaf.com/read/hffssmprmsgs
+https://loomprotocol.com/whitepaper
 
 src/data.rs
 -----------
@@ -13,4 +13,9 @@ src/net.rs
 -----------
 
 network code, encoding is little endian C layout, not network effecient, but fast to read and write
+
+src/state.rs
+-----------
+
+state machine for transactions
 

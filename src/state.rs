@@ -280,11 +280,11 @@ fn charge_test() {
     State::populate(&s.accounts, &msgs, &mut s.tmp).expect("p");
     let p = AccountT::find(&s.accounts, &[255u8;32]).expect("f");
     s.accounts[p].from = [255u8;32];
-    s.accounts[p].balance = NUM*2;
-    State::charge(&mut s.tmp, &msgs).expect("c");
+    s.accounts[p].balance = (NUM*2) as u64;
+    State::charges(&mut s.tmp, &mut msgs).expect("c");
     for m in msgs.iter() {
         assert!(m.state == data::State::Withdrawn);
-    }
+    
 }
 
 
