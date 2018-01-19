@@ -3,7 +3,7 @@ loom
 
 whitepaper
 -----------
-https://loomprotocol.com/whitepaper
+https://loomprotocol.com
 
 slack
 ------
