@@ -296,6 +296,40 @@ fn charge_test() {
     }
 }
 
+#[test]
+fn new_accounts_test() {
+    const NUM: usize = 2usize;
+    let mut s: State = State::new(NUM*2);
+    let mut msgs = [data::Message::default(); NUM];
+    for (i,m) in msgs.iter_mut().enumerate() {
+        m.kind = data::Kind::Transaction;
+        unsafe {
+            m.data.tx.to = [255u8; 32];
+            m.data.tx.to[0] = i as u8;
+            m.data.tx.from = [255u8; 32];
+            m.data.tx.fee = 1;
+            m.data.tx.amount = 1;
+            assert!(m.data.tx.to.unused() == false);
+            assert!(m.data.tx.from.unused() == false);
+        }
+    }
+    s.tmp.clear();
+    s.tmp.resize(msgs.len()*4, Account::default());
+
+    let p = AccountT::find(&s.accounts, &[255u8;32]).expect("f");
+    s.accounts[p].from = [255u8;32];
+    s.accounts[p].balance = (NUM*2) as u64;
+
+    State::populate(&s.accounts, &msgs, &mut s.tmp).expect("p");
+    let mut num = 0usize;
+    for m in msgs.iter_mut() {
+        m.state = data::State::Withdrawn;
+    }
+    State::new_accounts(&mut s.tmp, &mut msgs, &mut num).expect("c");
+    assert_eq!(num, NUM); 
+}
+
+
 
 #[bench]
 fn state_test2(b: &mut Bencher) {
