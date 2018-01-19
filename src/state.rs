@@ -271,16 +271,25 @@ fn charge_test() {
     }
     s.tmp.clear();
     s.tmp.resize(msgs.len()*4, Account::default());
+
+    let p = AccountT::find(&s.accounts, &[255u8;32]).expect("f");
+    s.accounts[p].from = [255u8;32];
+    s.accounts[p].balance = (NUM*2) as u64;
+
     for m in msgs.iter() {
         unsafe {
             let p = AccountT::find(&s.accounts, &m.data.tx.to).expect("f");
             s.accounts[p].from = m.data.tx.to;
         }
     }
+
     State::populate(&s.accounts, &msgs, &mut s.tmp).expect("p");
-    let p = AccountT::find(&s.accounts, &[255u8;32]).expect("f");
-    s.accounts[p].from = [255u8;32];
-    s.accounts[p].balance = (NUM*2) as u64;
+    for m in msgs.iter() {
+        unsafe {
+            let p = AccountT::find(&s.tmp, &m.data.tx.to).expect("f");
+            assert_eq!(s.tmp[p].from, m.data.tx.to);
+        }
+    }
     State::charges(&mut s.tmp, &mut msgs).expect("c");
     for m in msgs.iter() {
         assert!(m.state == data::State::Withdrawn);
