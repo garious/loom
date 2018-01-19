@@ -2,7 +2,18 @@ loom
 =====
 
 whitepaper
+-----------
 https://loomprotocol.com/whitepaper
+
+slack
+------
+* auto inviter
+
+https://loomprotocol-slack.herokuapp.com/
+
+* slack
+
+https://loomprotocol.slack.com
 
 src/data.rs
 -----------
