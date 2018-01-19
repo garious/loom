@@ -74,14 +74,52 @@ impl State {
         self.accounts = v;
         return Ok(());
     }
+    unsafe fn find_account<'a>(state: &'a [Account],
+                               fk: &[u8;32], tk: &[u8;32]) 
+        -> Result<(usize, usize)> 
+    {
+        let sf = AccountT::find(&state, fk)?;
+        let st = AccountT::find(&state, tk)?;
+        return Ok((sf, st));
+    }
+    unsafe fn load_account<'a>(state: &'a mut [Account],
+                               (sf, st): (usize, usize))
+        -> (&'a mut Account, &'a mut Account) 
+    {
+        let from = state.get_unchecked_mut(sf);
+        let to = state.get_unchecked_mut(st);
+        return (from, to);
+    }
+
     pub fn execute(&mut self, msgs: &mut [data::Message]) -> Result<()> {
         let mut num_new = 0;
         self.tmp.clear();
         self.tmp.resize(msgs.len()*4, Account::default());
         Self::populate(&self.accounts, msgs, &mut self.tmp)?;
-        Self::charges(&mut self.tmp, msgs)?;
-        Self::new_accounts(&mut self.tmp, msgs, &mut num_new)?;
-        Self::deposits(&mut self.tmp, msgs)?;
+        for mut m in msgs.iter_mut() {
+            unsafe {
+                if m.kind != data::Kind::Transaction {
+                    continue;
+                }
+                let pos = Self::find_account(&self.tmp,
+                                             &m.data.tx.from,
+                                             &m.data.tx.to)?;
+                let (mut from, mut to) = Self::load_account(&mut self.tmp,
+                                                            pos);
+                if from.from != m.data.tx.from {
+                    continue;
+                }
+                if to.from.unused() != true && to.from != m.data.tx.to {
+                    continue;
+                }
+                Self::charge(&mut from, &mut m);
+                if m.state != data::State::Withdrawn {
+                    continue;
+                }
+                Self::new_account(&to, &mut num_new);
+                Self::deposit(&mut to, &mut m);
+            }
+        }
         if ((4*(num_new + self.used))/3) > self.accounts.len() {
             self.double()?
         }
@@ -101,28 +139,38 @@ impl State {
         }
         return Ok(());
     }
-    fn charges(state: &mut [Account], msgs: &mut [data::Message]) -> Result<()> {
-        for m in msgs {
+    unsafe fn charge(acc: &mut Account,
+                     m: &mut data::Message) -> () {
+            let combined = m.data.tx.amount + m.data.tx.fee;
+            if acc.balance >= combined {
+                m.state = data::State::Withdrawn;
+                acc.balance = acc.balance - combined;
+            }
+    }
+    fn charges(state: &mut [Account],
+               msgs: &mut [data::Message]) -> Result<()> {
+        for mut m in msgs.iter_mut() {
             if m.kind != data::Kind::Transaction {
                 continue;
             }
             //TODO(aey) multiple threads
             unsafe {
                 let fp = AccountT::find(state, &m.data.tx.from)?;
-                let combined = m.data.tx.amount + m.data.tx.fee;
                 let mut acc = state.get_unchecked_mut(fp);
-                if acc.from != m.data.tx.from {
-                    continue;
-                }
-                if acc.balance >= combined {
-                    m.state = data::State::Withdrawn;
-                    acc.balance = acc.balance - combined;
-                }
+                Self::charge(&mut acc, &mut m);
             }
         }
         return Ok(());
     }
-    fn new_accounts(state: &mut [Account], msgs: &mut [data::Message], num: &mut usize) -> Result<()> {
+    fn new_account(to: &Account,
+                   num: &mut usize) -> () {
+        if to.from.unused() {
+            *num = *num + 1;
+        }
+    }
+    fn new_accounts(state: &mut [Account],
+                    msgs: &mut [data::Message],
+                    num: &mut usize) -> Result<()> {
         for m in msgs {
             if m.kind != data::Kind::Transaction {
                 continue;
@@ -131,17 +179,25 @@ impl State {
             unsafe {
                 if m.state == data::State::Withdrawn {
                     let tp = AccountT::find(state, &m.data.tx.to)?;
-                    if state.get_unchecked(tp).from.unused() {
-                        *num = *num + 1;
-                    }
+                    Self::new_account(state.get_unchecked(tp), num);
                 }
             }
         }
         return Ok(());
     }
 
+    unsafe fn deposit(to: &mut Account, m: &mut data::Message) -> () {
+        to.balance = to.balance + m.data.tx.amount;
+        if to.from.unused() {
+            to.from = m.data.tx.to;
+            assert!(m.data.tx.to.unused() == false);
+            assert!(to.from.unused() == false);
+        }
+        m.state = data::State::Deposited;
+    }
+
     fn deposits(state: &mut [Account], msgs: &mut [data::Message]) -> Result<()> {
-        for m in msgs {
+        for mut m in msgs.iter_mut() {
             if m.kind != data::Kind::Transaction {
                 continue;
             }
@@ -149,15 +205,8 @@ impl State {
                 unsafe {
                     let pos = AccountT::find(state, &m.data.tx.to)?;
                     let mut acc = state.get_unchecked_mut(pos);
-                    //TODO(aey) multiple threads
-                    acc.balance = acc.balance + m.data.tx.amount;
-                    if acc.from.unused() {
-                        acc.from = m.data.tx.to;
-                        assert!(m.data.tx.to.unused() == false);
-                        assert!(acc.from.unused() == false);
-                    }
+                    Self::deposit(&mut acc, &mut m);
                 }
-                m.state = data::State::Deposited;
             }
         }
         return Ok(());
