@@ -86,8 +86,9 @@ impl State {
                                (sf, st): (usize, usize))
         -> (&'a mut Account, &'a mut Account) 
     {
-        let from = state.get_unchecked_mut(sf);
-        let to = state.get_unchecked_mut(st);
+        let ptr = state.as_mut_ptr();
+        let from = ptr.offset(sf as isize).as_mut().unwrap();
+        let to = ptr.offset(st as isize).as_mut().unwrap();
         return (from, to);
     }
 
