@@ -381,7 +381,7 @@ fn deposits_test() {
 
 #[bench]
 fn state_test2(b: &mut Bencher) {
-    const NUM: usize = 64usize;
+    const NUM: usize = 1024usize;
     let mut s: State = State::new(NUM*2);
     let mut msgs = [data::Message::default(); NUM];
     init_msgs(&mut msgs);
