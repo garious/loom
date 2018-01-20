@@ -53,7 +53,7 @@ impl State {
         v.resize(size, Account::default());
         return State{accounts: v, used: 0};
     }
-    pub fn double(&mut self) -> Result<()> {
+    fn double(&mut self) -> Result<()> {
         let mut v = Vec::new();
         let size = self.accounts.len()*2;
         v.resize(size, Account::default());
@@ -105,7 +105,6 @@ impl State {
         Self::deposit(&mut to, m);
         return Ok(());
     }
-
     pub fn execute(&mut self, msgs: &mut [data::Message]) -> Result<()> {
         let mut num_new = 0;
         for mut m in msgs.iter_mut() {
@@ -120,20 +119,6 @@ impl State {
         }
         return Ok(());
     }
-    fn populate(accounts: &[Account], msgs: &[data::Message], tmp: &mut [Account]) -> Result<()> {
-        for m in msgs.iter() {
-            unsafe {
-                let sf = AccountT::find(accounts, &m.data.tx.from)?;
-                let df = AccountT::find(tmp, &m.data.tx.from)?;
-                *tmp.get_unchecked_mut(df) = *accounts.get_unchecked(sf);
-
-                let st = AccountT::find(accounts, &m.data.tx.to)?;
-                let dt = AccountT::find(tmp, &m.data.tx.to)?;
-                *tmp.get_unchecked_mut(dt) = *accounts.get_unchecked(st);
-            }
-        }
-        return Ok(());
-    }
     unsafe fn charge(acc: &mut Account,
                      m: &mut data::Message) -> () {
             let combined = m.data.tx.amount + m.data.tx.fee;
@@ -142,45 +127,12 @@ impl State {
                 acc.balance = acc.balance - combined;
             }
     }
-    fn charges(state: &mut [Account],
-               msgs: &mut [data::Message]) -> Result<()> {
-        for mut m in msgs.iter_mut() {
-            if m.kind != data::Kind::Transaction {
-                continue;
-            }
-            //TODO(aey) multiple threads
-            unsafe {
-                let fp = AccountT::find(state, &m.data.tx.from)?;
-                let mut acc = state.get_unchecked_mut(fp);
-                Self::charge(&mut acc, &mut m);
-            }
-        }
-        return Ok(());
-    }
     fn new_account(to: &Account,
                    num: &mut usize) -> () {
         if to.from.unused() {
             *num = *num + 1;
         }
     }
-    fn new_accounts(state: &mut [Account],
-                    msgs: &mut [data::Message],
-                    num: &mut usize) -> Result<()> {
-        for m in msgs {
-            if m.kind != data::Kind::Transaction {
-                continue;
-            }
-            //TODO(aey) multiple threads
-            unsafe {
-                if m.state == data::State::Withdrawn {
-                    let tp = AccountT::find(state, &m.data.tx.to)?;
-                    Self::new_account(state.get_unchecked(tp), num);
-                }
-            }
-        }
-        return Ok(());
-    }
-
     unsafe fn deposit(to: &mut Account, m: &mut data::Message) -> () {
         to.balance = to.balance + m.data.tx.amount;
         if to.from.unused() {
@@ -191,36 +143,6 @@ impl State {
         m.state = data::State::Deposited;
     }
 
-    fn deposits(state: &mut [Account], msgs: &mut [data::Message]) -> Result<()> {
-        for mut m in msgs.iter_mut() {
-            if m.kind != data::Kind::Transaction {
-                continue;
-            }
-            if m.state == data::State::Withdrawn {
-                unsafe {
-                    let pos = AccountT::find(state, &m.data.tx.to)?;
-                    let mut acc = state.get_unchecked_mut(pos);
-                    Self::deposit(&mut acc, &mut m);
-                }
-            }
-        }
-        return Ok(());
-    }
-    fn apply(state: &[Account], accounts: &mut [Account]) -> Result<()> {
-        //TODO(aey): multiple threads
-        for t in state.iter() {
-            unsafe {
-                if t.from.unused() {
-                    assert!(t.balance == 0);
-                    continue;
-                }
-                let ap = AccountT::find(accounts, &t.from)?;
-                let mut acc = accounts.get_unchecked_mut(ap);
-                acc.balance = t.balance;
-            }
-        }
-        return Ok(());
-    }
 }
 
 #[cfg(test)]
@@ -248,136 +170,6 @@ fn init_msgs(msgs: &mut [data::Message]) {
         }
     }
 }
-#[test]
-fn populate_test() {
-    const NUM: usize = 2usize;
-    let mut s: State = State::new(NUM);
-    let mut msgs = [data::Message::default(); NUM];
-    init_msgs(&mut msgs);
-    let mut tmp = Vec::new();
-    tmp.clear();
-    tmp.resize(msgs.len()*4, Account::default());
-    State::populate(&s.accounts, &msgs, &mut tmp).expect("p");
-    for i in tmp {
-        assert!(i.balance == 0);
-        assert!(i.key().unused());
-    }
-}
-
-#[test]
-fn populate_test2() {
-    const NUM: usize = 2usize;
-    let mut s: State = State::new(NUM*2);
-    let mut msgs = [data::Message::default(); NUM];
-    init_msgs(&mut msgs);
-    let mut tmp = Vec::new();
-    tmp.clear();
-    tmp.resize(msgs.len()*4, Account::default());
-    State::populate(&s.accounts, &msgs, &mut tmp).expect("p");
-    for m in msgs.iter() {
-        unsafe {
-            let p = AccountT::find(&s.accounts, &m.data.tx.to).expect("f");
-            s.accounts[p].from = m.data.tx.to;
-            let np = AccountT::find(&s.accounts, &m.data.tx.to).expect("f");
-            assert_eq!(np, p);
-        }
-    }
-    State::populate(&s.accounts, &msgs, &mut tmp).expect("p");
-    for m in msgs.iter() {
-        unsafe {
-            let p = AccountT::find(&tmp, &m.data.tx.to).expect("f");
-            assert_eq!(tmp[p].from, m.data.tx.to);
-        }
-    }
-}
-
-#[test]
-fn charge_test() {
-    const NUM: usize = 2usize;
-    let mut s: State = State::new(NUM*2);
-    let mut msgs = [data::Message::default(); NUM];
-    init_msgs(&mut msgs);
-    let mut tmp = Vec::new();
-    tmp.clear();
-    tmp.resize(msgs.len()*4, Account::default());
-
-    let p = AccountT::find(&s.accounts, &[255u8;32]).expect("f");
-    s.accounts[p].from = [255u8;32];
-    s.accounts[p].balance = (NUM*2) as u64;
-
-    for m in msgs.iter() {
-        unsafe {
-            let p = AccountT::find(&s.accounts, &m.data.tx.to).expect("f");
-            s.accounts[p].from = m.data.tx.to;
-        }
-    }
-
-    State::populate(&s.accounts, &msgs, &mut tmp).expect("p");
-    for m in msgs.iter() {
-        unsafe {
-            let p = AccountT::find(&tmp, &m.data.tx.to).expect("f");
-            assert_eq!(tmp[p].from, m.data.tx.to);
-        }
-    }
-    State::charges(&mut tmp, &mut msgs).expect("c");
-    for m in msgs.iter() {
-        assert!(m.state == data::State::Withdrawn);
-    }
-}
-
-#[test]
-fn new_accounts_test() {
-    const NUM: usize = 2usize;
-    let mut s: State = State::new(NUM*2);
-    let mut msgs = [data::Message::default(); NUM];
-    init_msgs(&mut msgs);
-    let mut tmp = Vec::new();
-    tmp.clear();
-    tmp.resize(msgs.len()*4, Account::default());
-
-    let p = AccountT::find(&s.accounts, &[255u8;32]).expect("f");
-    s.accounts[p].from = [255u8;32];
-    s.accounts[p].balance = (NUM*2) as u64;
-
-    State::populate(&s.accounts, &msgs, &mut tmp).expect("p");
-    let mut num = 0usize;
-    for m in msgs.iter_mut() {
-        m.state = data::State::Withdrawn;
-    }
-    State::new_accounts(&mut tmp, &mut msgs, &mut num).expect("c");
-    assert_eq!(num, NUM); 
-}
-
-#[test]
-fn deposits_test() {
-    const NUM: usize = 2usize;
-    let mut s: State = State::new(NUM*2);
-    let mut msgs = [data::Message::default(); NUM];
-    init_msgs(&mut msgs);
-    let mut tmp = Vec::new();
-    tmp.clear();
-    tmp.resize(msgs.len()*4, Account::default());
-
-    let p = AccountT::find(&s.accounts, &[255u8;32]).expect("f");
-    s.accounts[p].from = [255u8;32];
-    s.accounts[p].balance = (NUM*2) as u64;
-
-    State::populate(&s.accounts, &msgs, &mut tmp).expect("p");
-    State::charges(&mut tmp, &mut msgs).expect("c");
-    let p = AccountT::find(&tmp, &[255u8;32]).expect("f");
-    assert_eq!(tmp[p].from, [255u8;32]);
-    assert_eq!(tmp[p].balance, 0);
-    State::deposits(&mut tmp, &mut msgs).expect("d");
-    for m in msgs.iter_mut() {
-        unsafe {
-            let p = AccountT::find(&tmp, &m.data.tx.to).expect("f");
-            assert_eq!(tmp[p].from, m.data.tx.to);
-            assert!(m.state == data::State::Deposited);
-            assert_eq!(tmp[p].balance, 1);
-        }
-    }
-}
-
 #[bench]
 fn state_test2(b: &mut Bencher) {
     const NUM: usize = 128usize;
