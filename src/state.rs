@@ -338,7 +338,7 @@ fn state_test2(b: &mut Bencher) {
     let fp = AccountT::find(&s.accounts, &[255u8; 32]).expect("f");
     s.accounts[fp].from = [255u8;32];
     b.iter(|| {
-        s.accounts[fp].balance = 128;
+        s.accounts[fp].balance = 2u64 * NUM as u64;
         s.execute(&mut msgs).expect("execute");
         assert_eq!(s.accounts[fp].balance,0);
     })
