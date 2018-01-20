@@ -1,6 +1,8 @@
 loom
 =====
 
+A new architecture for a high performance blockchain.
+
 whitepaper
 -----------
 https://loomprotocol.com
