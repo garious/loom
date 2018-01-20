@@ -43,7 +43,6 @@ type AccountT = HashT<[u8;32], Account>;
 #[repr(C)]
 pub struct State {
     accounts: Vec<Account>,
-    tmp: Vec<Account>,
     used: usize,
 }
 
@@ -52,19 +51,7 @@ impl State {
         let mut v = Vec::new();
         v.clear();
         v.resize(size, Account::default());
-        for i in v.iter() {
-            if i.from.unused() {
-                assert!(i.balance == 0);
-            }
-        }
-        let t = Vec::new();
-        let rv = State{accounts: v, tmp: t, used: 0};
-        for v in rv.accounts.iter() {
-            if v.from.unused() {
-                assert!(v.balance == 0);
-            }
-        }
-        return rv;
+        return State{accounts: v, used: 0};
     }
     pub fn double(&mut self) -> Result<()> {
         let mut v = Vec::new();
@@ -74,16 +61,16 @@ impl State {
         self.accounts = v;
         return Ok(());
     }
-    unsafe fn find_account<'a>(state: &'a [Account],
-                               fk: &[u8;32], tk: &[u8;32]) 
+    unsafe fn find_accounts(state: &[Account],
+                            fk: &[u8;32], tk: &[u8;32]) 
         -> Result<(usize, usize)> 
     {
         let sf = AccountT::find(&state, fk)?;
         let st = AccountT::find(&state, tk)?;
         return Ok((sf, st));
     }
-    unsafe fn load_account<'a>(state: &'a mut [Account],
-                               (sf, st): (usize, usize))
+    unsafe fn load_accounts<'a>(state: &'a mut [Account],
+                                (sf, st): (usize, usize))
         -> (&'a mut Account, &'a mut Account) 
     {
         let ptr = state.as_mut_ptr();
@@ -92,39 +79,46 @@ impl State {
         return (from, to);
     }
 
+    unsafe fn exec(state: &mut [Account],
+                   m: &mut data::Message,
+                   num_new: &mut usize)
+        -> Result<()>
+   {
+        if m.kind != data::Kind::Transaction {
+            return Ok(());
+        }
+        let pos = Self::find_accounts(state,
+                                      &m.data.tx.from,
+                                      &m.data.tx.to)?;
+        let (mut from, mut to) = Self::load_accounts(state, pos);
+        if from.from != m.data.tx.from {
+            return Ok(());
+        }
+        if to.from.unused() != true && to.from != m.data.tx.to {
+            return Ok(());
+        }
+        Self::charge(&mut from, m);
+        if m.state != data::State::Withdrawn {
+            return Ok(());
+        }
+        Self::new_account(&to, num_new);
+        Self::deposit(&mut to, m);
+        return Ok(());
+    }
+
     pub fn execute(&mut self, msgs: &mut [data::Message]) -> Result<()> {
         let mut num_new = 0;
-        self.tmp.clear();
-        self.tmp.resize(msgs.len()*4, Account::default());
-        Self::populate(&self.accounts, msgs, &mut self.tmp)?;
         for mut m in msgs.iter_mut() {
             unsafe {
-                if m.kind != data::Kind::Transaction {
-                    continue;
-                }
-                let pos = Self::find_account(&self.tmp,
-                                             &m.data.tx.from,
-                                             &m.data.tx.to)?;
-                let (mut from, mut to) = Self::load_account(&mut self.tmp,
-                                                            pos);
-                if from.from != m.data.tx.from {
-                    continue;
-                }
-                if to.from.unused() != true && to.from != m.data.tx.to {
-                    continue;
-                }
-                Self::charge(&mut from, &mut m);
-                if m.state != data::State::Withdrawn {
-                    continue;
-                }
-                Self::new_account(&to, &mut num_new);
-                Self::deposit(&mut to, &mut m);
+                Self::exec(&mut self.accounts, &mut m, &mut num_new)?;
             }
+            if ((4*(num_new + self.used))/3) > self.accounts.len() {
+                self.double()?
+            }
+            self.used = num_new + self.used;
+            num_new = 0;
         }
-        if ((4*(num_new + self.used))/3) > self.accounts.len() {
-            self.double()?
-        }
-        return Self::apply(&self.tmp, &mut self.accounts);
+        return Ok(());
     }
     fn populate(accounts: &[Account], msgs: &[data::Message], tmp: &mut [Account]) -> Result<()> {
         for m in msgs.iter() {
@@ -260,10 +254,11 @@ fn populate_test() {
     let mut s: State = State::new(NUM);
     let mut msgs = [data::Message::default(); NUM];
     init_msgs(&mut msgs);
-    s.tmp.clear();
-    s.tmp.resize(msgs.len()*4, Account::default());
-    State::populate(&s.accounts, &msgs, &mut s.tmp).expect("p");
-    for i in s.tmp {
+    let mut tmp = Vec::new();
+    tmp.clear();
+    tmp.resize(msgs.len()*4, Account::default());
+    State::populate(&s.accounts, &msgs, &mut tmp).expect("p");
+    for i in tmp {
         assert!(i.balance == 0);
         assert!(i.key().unused());
     }
@@ -275,9 +270,10 @@ fn populate_test2() {
     let mut s: State = State::new(NUM*2);
     let mut msgs = [data::Message::default(); NUM];
     init_msgs(&mut msgs);
-    s.tmp.clear();
-    s.tmp.resize(msgs.len()*4, Account::default());
-    State::populate(&s.accounts, &msgs, &mut s.tmp).expect("p");
+    let mut tmp = Vec::new();
+    tmp.clear();
+    tmp.resize(msgs.len()*4, Account::default());
+    State::populate(&s.accounts, &msgs, &mut tmp).expect("p");
     for m in msgs.iter() {
         unsafe {
             let p = AccountT::find(&s.accounts, &m.data.tx.to).expect("f");
@@ -286,11 +282,11 @@ fn populate_test2() {
             assert_eq!(np, p);
         }
     }
-    State::populate(&s.accounts, &msgs, &mut s.tmp).expect("p");
+    State::populate(&s.accounts, &msgs, &mut tmp).expect("p");
     for m in msgs.iter() {
         unsafe {
-            let p = AccountT::find(&s.tmp, &m.data.tx.to).expect("f");
-            assert_eq!(s.tmp[p].from, m.data.tx.to);
+            let p = AccountT::find(&tmp, &m.data.tx.to).expect("f");
+            assert_eq!(tmp[p].from, m.data.tx.to);
         }
     }
 }
@@ -301,8 +297,9 @@ fn charge_test() {
     let mut s: State = State::new(NUM*2);
     let mut msgs = [data::Message::default(); NUM];
     init_msgs(&mut msgs);
-    s.tmp.clear();
-    s.tmp.resize(msgs.len()*4, Account::default());
+    let mut tmp = Vec::new();
+    tmp.clear();
+    tmp.resize(msgs.len()*4, Account::default());
 
     let p = AccountT::find(&s.accounts, &[255u8;32]).expect("f");
     s.accounts[p].from = [255u8;32];
@@ -315,14 +312,14 @@ fn charge_test() {
         }
     }
 
-    State::populate(&s.accounts, &msgs, &mut s.tmp).expect("p");
+    State::populate(&s.accounts, &msgs, &mut tmp).expect("p");
     for m in msgs.iter() {
         unsafe {
-            let p = AccountT::find(&s.tmp, &m.data.tx.to).expect("f");
-            assert_eq!(s.tmp[p].from, m.data.tx.to);
+            let p = AccountT::find(&tmp, &m.data.tx.to).expect("f");
+            assert_eq!(tmp[p].from, m.data.tx.to);
         }
     }
-    State::charges(&mut s.tmp, &mut msgs).expect("c");
+    State::charges(&mut tmp, &mut msgs).expect("c");
     for m in msgs.iter() {
         assert!(m.state == data::State::Withdrawn);
     }
@@ -334,19 +331,20 @@ fn new_accounts_test() {
     let mut s: State = State::new(NUM*2);
     let mut msgs = [data::Message::default(); NUM];
     init_msgs(&mut msgs);
-    s.tmp.clear();
-    s.tmp.resize(msgs.len()*4, Account::default());
+    let mut tmp = Vec::new();
+    tmp.clear();
+    tmp.resize(msgs.len()*4, Account::default());
 
     let p = AccountT::find(&s.accounts, &[255u8;32]).expect("f");
     s.accounts[p].from = [255u8;32];
     s.accounts[p].balance = (NUM*2) as u64;
 
-    State::populate(&s.accounts, &msgs, &mut s.tmp).expect("p");
+    State::populate(&s.accounts, &msgs, &mut tmp).expect("p");
     let mut num = 0usize;
     for m in msgs.iter_mut() {
         m.state = data::State::Withdrawn;
     }
-    State::new_accounts(&mut s.tmp, &mut msgs, &mut num).expect("c");
+    State::new_accounts(&mut tmp, &mut msgs, &mut num).expect("c");
     assert_eq!(num, NUM); 
 }
 
@@ -356,39 +354,40 @@ fn deposits_test() {
     let mut s: State = State::new(NUM*2);
     let mut msgs = [data::Message::default(); NUM];
     init_msgs(&mut msgs);
-    s.tmp.clear();
-    s.tmp.resize(msgs.len()*4, Account::default());
+    let mut tmp = Vec::new();
+    tmp.clear();
+    tmp.resize(msgs.len()*4, Account::default());
 
     let p = AccountT::find(&s.accounts, &[255u8;32]).expect("f");
     s.accounts[p].from = [255u8;32];
     s.accounts[p].balance = (NUM*2) as u64;
 
-    State::populate(&s.accounts, &msgs, &mut s.tmp).expect("p");
-    State::charges(&mut s.tmp, &mut msgs).expect("c");
-    let p = AccountT::find(&s.tmp, &[255u8;32]).expect("f");
-    assert_eq!(s.tmp[p].from, [255u8;32]);
-    assert_eq!(s.tmp[p].balance, 0);
-    State::deposits(&mut s.tmp, &mut msgs).expect("d");
+    State::populate(&s.accounts, &msgs, &mut tmp).expect("p");
+    State::charges(&mut tmp, &mut msgs).expect("c");
+    let p = AccountT::find(&tmp, &[255u8;32]).expect("f");
+    assert_eq!(tmp[p].from, [255u8;32]);
+    assert_eq!(tmp[p].balance, 0);
+    State::deposits(&mut tmp, &mut msgs).expect("d");
     for m in msgs.iter_mut() {
         unsafe {
-            let p = AccountT::find(&s.tmp, &m.data.tx.to).expect("f");
-            assert_eq!(s.tmp[p].from, m.data.tx.to);
+            let p = AccountT::find(&tmp, &m.data.tx.to).expect("f");
+            assert_eq!(tmp[p].from, m.data.tx.to);
             assert!(m.state == data::State::Deposited);
-            assert_eq!(s.tmp[p].balance, 1);
+            assert_eq!(tmp[p].balance, 1);
         }
     }
 }
 
 #[bench]
 fn state_test2(b: &mut Bencher) {
-    const NUM: usize = 1024usize;
+    const NUM: usize = 128usize;
     let mut s: State = State::new(NUM*2);
     let mut msgs = [data::Message::default(); NUM];
     init_msgs(&mut msgs);
     let fp = AccountT::find(&s.accounts, &[255u8; 32]).expect("f");
     s.accounts[fp].from = [255u8;32];
     b.iter(|| {
-        s.accounts[fp].balance = 128;
+        s.accounts[fp].balance = NUM as u64 * 2u64;
         s.execute(&mut msgs).expect("execute");
         assert_eq!(s.accounts[fp].balance,0);
     })
