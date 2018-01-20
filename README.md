@@ -2,7 +2,10 @@ loom
 =====
 
 Loom is a new architecture for blockchain that can achieve up to 710,000 transactions per second on a 1 gigabit network without data partitioning. 
-The key innovation is Proof of History — encoding passage of time as data into the ledger. Loom uses the strong assumption of time to construct simpler and more efficient protocols and proofs. Learn more about Loom and read the whitepaper, or join us on slack at https://loomprotocol.com
+
+The key innovation is Proof of History - encoding passage of time as data into the ledger. Loom uses the strong assumption of time to construct simpler and more efficient protocols and proofs.
+
+Learn more about Loom and read the whitepaper, or join us on slack at https://loomprotocol.com
 
 whitepaper
 -----------
