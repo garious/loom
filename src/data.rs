@@ -21,15 +21,22 @@ pub struct POH {
 #[derive(Copy,Clone)]
 #[repr(C)]
 pub struct Signature {
-    pub data: [u8; 32],
+    pub data: [u8; 64],
 }
 
+#[derive(Copy,Clone)]
+#[repr(C)]
+pub struct Subscriber {
+    pub key: [u8; 32],
+    pub addr: u64,
+}
 
 #[derive(Copy,Clone)]
 #[repr(C)]
 pub union MessageData {
     pub tx: Transaction,
     pub poh: POH,
+    pub sub: Subscriber,
 }
 
 impl Default for MessageData {
@@ -45,7 +52,7 @@ pub enum Kind {
     Invalid,
     Transaction,
     Signature,
-    GossipSubscribe,
+    Subscribe,
 }
 
 impl Default for Kind {

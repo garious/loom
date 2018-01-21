@@ -9,30 +9,6 @@ struct Account {
     balance: u64,
 }
 
-impl Key for [u8; 32] {
-    fn start(&self) -> usize {
-        let st = ((self[0] as u64) << ((7 - 0) * 8)) |
-                 ((self[1] as u64) << ((7 - 1) * 8)) |
-                 ((self[2] as u64) << ((7 - 2) * 8)) |
-                 ((self[3] as u64) << ((7 - 3) * 8)) |
-                 ((self[4] as u64) << ((7 - 4) * 8)) |
-                 ((self[5] as u64) << ((7 - 5) * 8)) |
-                 ((self[6] as u64) << ((7 - 6) * 8)) |
-                 ((self[7] as u64) << ((7 - 7) * 8)) ;
-        return st as usize;
-    }
- 
-    fn unused(&self) -> bool {
-        //TODO(aey): *self == [0u8; 32] should work
-        for i in self.iter() {
-            if *i != 0 {
-                return false;
-            }
-        }
-        return true;
-    }
-}
-
 impl Val<[u8;32]> for Account {
     fn key(&self) -> &[u8;32] {
         return &self.from;
