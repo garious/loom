@@ -7,6 +7,7 @@ use std::mem::uninitialized;
 pub fn run() -> Result<()> {
     let srv = net::server()?;
     let mut s = state::State::new(1024);
+    let mut g = gossip::Gossip::new(1024);
     let mut m: [data::Message; 1024] = unsafe { uninitialized() };
     let mut num = 0;
     loop {
