@@ -31,15 +31,22 @@ https://trello.com/b/RdNE8vbC/engineering
 src/data.rs
 -----------
 
-data structures for the protocol, data types must have C layout, and no gaps
+data structures for the protocol, data types must have little endian C99 layout, no gaps, and same layout on LP64 and LLP64 and other variants.
+
+TBD a lightweight serealization format.
 
 src/net.rs
 -----------
 
-network code, encoding is little endian C layout, not network effecient, but fast to read and write
+network code, assuming all endpoints are reading and writing little endian C99 LP64 layout.
 
 src/state.rs
 -----------
 
 state machine for transactions
+
+src/gossip.rs
+-------------
+
+track gossip subscribers
 
