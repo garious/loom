@@ -1,7 +1,9 @@
-use net;
-use state;
-use data;
-use result::Result;
+extern crate loom;
+use loom::net;
+use loom::state;
+use loom::gossip;
+use loom::data;
+use loom::result::Result;
 use std::mem::uninitialized;
 
 pub fn run() -> Result<()> {
@@ -15,6 +17,7 @@ pub fn run() -> Result<()> {
         let start = num;
         net::read(&srv, &mut m[start .. ], &mut num).expect("read");
         let end = num;
-        s.execute(&mut m[start .. end]).expect("execute");
+        s.execute(&mut m[start .. end]).expect("state");
+        g.execute(&mut m[start .. end]).expect("gossip");
     }
 }

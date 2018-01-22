@@ -8,3 +8,7 @@ license = "BSD-3-Clause/MIT or Apache"
 documentation = "tbd"
 keywords = ["blockchain"]
 readme = "README.md"
+
+[[bin]]
+name = "spool"
+path = "src/bin/spool.rs"

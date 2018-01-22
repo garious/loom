@@ -39,7 +39,9 @@ impl Gossip {
         self.subs = v;
         return Ok(());
     }
-    unsafe fn exec(&mut self, m: &data::Message, new: &mut usize) -> Result<()> {
+    unsafe fn exec(&mut self,
+                   m: &data::Message,
+                   new: &mut usize) -> Result<()> {
         match m.kind {
             data::Kind::Signature => self.now = m.data.poh.counter,
             data::Kind::Subscribe => {
@@ -65,9 +67,9 @@ impl Gossip {
             unsafe {
                 self.exec(&m, &mut new)?;
             }
-            if ((4*(self.used + new))/3) > self.subs.len() {
+            self.used = self.used + new;
+            if ((4*(self.used))/3) > self.subs.len() {
                 self.double()?;
-                self.used = self.used + new;
             }
         }
         return Ok(());

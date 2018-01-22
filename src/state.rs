@@ -87,10 +87,10 @@ impl State {
             unsafe {
                 Self::exec(&mut self.accounts, &mut m, &mut num_new)?;
             }
-            if ((4*(num_new + self.used))/3) > self.accounts.len() {
+            self.used = num_new + self.used;
+            if ((4*(self.used))/3) > self.accounts.len() {
                 self.double()?
             }
-            self.used = num_new + self.used;
             num_new = 0;
         }
         return Ok(());
