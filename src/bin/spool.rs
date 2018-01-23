@@ -13,7 +13,6 @@ pub fn run() -> Result<()> {
     let mut m: [data::Message; 1024] = unsafe { uninitialized() };
     loop {
         let mut num = 0;
-        //TODO(aey): read/execute on separate threads
         let start = num;
         net::read(&srv, &mut m[start .. ], &mut num).expect("read");
         let end = num;

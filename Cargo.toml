@@ -12,3 +12,7 @@ readme = "README.md"
 [[bin]]
 name = "spool"
 path = "src/bin/spool.rs"
+
+[[bin]]
+name = "loom"
+path = "src/bin/loom.rs"

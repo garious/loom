@@ -6,7 +6,8 @@ use result::{Result};
 #[repr(C)]
 pub struct Subscriber {
     pub key: [u8; 32],
-    pub addr: u64,
+    pub addr: [u8;4],
+    pub port: u16,
     pub lastping: u64,
 }
 
@@ -19,7 +20,7 @@ impl Val<[u8;32]> for Subscriber {
 type SubT = HashT<[u8;32], Subscriber>;
 
 pub struct Gossip {
-    subs: Vec<Subscriber>,
+    pub subs: Vec<Subscriber>,
     now: u64,
     used: usize,
 }
@@ -50,6 +51,7 @@ impl Gossip {
                 let now = self.now;
                 let update = Subscriber{key: m.data.sub.key,
                                         addr: m.data.sub.addr,
+                                        port: m.data.sub.port,
                                         lastping: now};
                 let g = self.subs.get_unchecked_mut(pos);
                 if g.key.unused() {
@@ -74,19 +76,5 @@ impl Gossip {
         }
         return Ok(());
     }
-    //
-    //downstream broadcast algorithm
-    //everyone lower rank
-    //      l
-    //   s s s s 
-    // ss ss ss ss
-    // so basically arange a heap based on "rank" and 
-    // broadcast down the heap based on the width of the heap
-    // rank is based on bond size
-    fn _downstream(_subs: &[Subscriber],
-                   _state: &[data::Account]) -> Result<()> {
-        return Ok(());
-    }
-
 
 }

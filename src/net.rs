@@ -5,6 +5,9 @@ use std::net::UdpSocket;
 use std::mem::transmute;
 use std::mem::size_of;
 use std::slice::from_raw_parts;
+use std::net::SocketAddr;
+use std::net::Ipv4Addr;
+use std::net::IpAddr;
 use data::{Message, MAX_PACKET};
 use result::{Result};
 
@@ -45,6 +48,28 @@ pub fn write(socket: &UdpSocket, messages: &[Message], num: &mut usize) -> Resul
     }
     return Ok(());
 }
+
+pub fn sendtov4(socket: &UdpSocket,
+                msgs: &[Message],
+                num: &mut usize,
+                a: [u8;4], port: u16) -> Result<()> {
+    let sz = size_of::<Message>();
+    let ipv4 = Ipv4Addr::new(a[0], a[1], a[2], a[3]);
+    let addr = SocketAddr::new(IpAddr::V4(ipv4), port);
+
+    let max = msgs.len();
+    while *num < max {
+        unsafe {
+            let p = &msgs[*num] as *const Message;
+            let bz = min(MAX_PACKET / sz, max - *num) * sz;
+            let buf = transmute(from_raw_parts(p as *const u8, bz));
+            let sent_size = socket.send_to(buf, addr)?;
+            *num = *num + sent_size / sz;
+        }
+    }
+    return Ok(());
+}
+
 
 #[test]
 fn server_test() {

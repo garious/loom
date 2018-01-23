@@ -29,7 +29,8 @@ pub struct Signature {
 #[repr(C)]
 pub struct Subscriber {
     pub key: [u8; 32],
-    pub addr: u64,
+    pub addr: [u8;4],
+    pub port: u16,
 }
 
 #[derive(Copy,Clone)]
