@@ -1,3 +1,22 @@
+sudo: false
 language: rust
 rust:
   - nightly
+
+# Dependencies of kcov, used by coverage
+addons:
+  apt:
+    packages:
+      - libcurl4-openssl-dev
+      - libelf-dev
+      - libdw-dev
+      - binutils-dev
+    sources:
+      - kalakris-cmake
+
+before_script:
+  - export PATH=$HOME/.cargo/bin:$PATH
+  - cargo install cargo-travis
+
+after_success:
+  - cargo coveralls

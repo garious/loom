@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/loomprotocol/loom.svg?branch=master)](https://travis-ci.org/loomprotocol/loom)
+[![Coverage Status](https://coveralls.io/repos/github/loomprotocol/loom/badge.svg?branch=master)](https://coveralls.io/github/loomprotocol/loom?branch=master)
 Loom
 =====
 Loom is a new architecture for blockchain. It can achieve up to 710,000 transactions per second on a 1 gigabit network without data partitioning. Loom can eventually recover from a fault of any size, and it provides a way to cheaply verify a distributed ledger.
