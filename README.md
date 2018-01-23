@@ -21,11 +21,6 @@ https://joinslack.loomprotocol.com
 
 https://loomprotocol.slack.com
 
-trello
-------
-
-https://trello.com/b/RdNE8vbC/engineering
-
 src/data.rs
 -----------
 
