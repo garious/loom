@@ -15,7 +15,7 @@ slack
 ------
 * auto inviter
 
-https://loomprotocol-slack.herokuapp.com/
+https://joinslack.loomprotocol.com
 
 * slack
 
