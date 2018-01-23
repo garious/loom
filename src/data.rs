@@ -134,19 +134,3 @@ impl Val<[u8;32]> for Account {
 }
 pub type AccountT = HashT<[u8;32], Account>;
 
-#[derive(Default, Copy, Clone)]
-#[repr(C)]
-pub struct Subscriber {
-    pub key: [u8; 32],
-    pub addr: u64,
-    pub lastping: u64,
-}
-
-impl Val<[u8;32]> for Subscriber {
-    fn key(&self) -> &[u8;32] {
-        return &self.key;
-    }
-}
-
-type SubT = HashT<[u8;32], Subscriber>;
-
