@@ -1,3 +1,4 @@
+use hasht::{HashT, Key, Val};
 #[derive(Default)]
 #[derive(Copy,Clone)]
 #[repr(C)]
@@ -100,3 +101,52 @@ pub struct Message {
     pub unused: [u8; 6],
     pub data: MessageData,
 }
+
+#[derive(Default, Copy, Clone)]
+#[repr(C)]
+pub struct Account {
+    pub from: [u8; 32],
+    pub balance: u64,
+}
+
+impl Key for [u8; 32] {
+    fn start(&self) -> usize {
+        let st = ((self[0] as u64) << ((7 - 0) * 8)) |
+                 ((self[1] as u64) << ((7 - 1) * 8)) |
+                 ((self[2] as u64) << ((7 - 2) * 8)) |
+                 ((self[3] as u64) << ((7 - 3) * 8)) |
+                 ((self[4] as u64) << ((7 - 4) * 8)) |
+                 ((self[5] as u64) << ((7 - 5) * 8)) |
+                 ((self[6] as u64) << ((7 - 6) * 8)) |
+                 ((self[7] as u64) << ((7 - 7) * 8)) ;
+        return st as usize;
+    }
+ 
+    fn unused(&self) -> bool {
+        return *self == [0u8; 32];
+    }
+}
+
+impl Val<[u8;32]> for Account {
+    fn key(&self) -> &[u8;32] {
+        return &self.from;
+    }
+}
+pub type AccountT = HashT<[u8;32], Account>;
+
+#[derive(Default, Copy, Clone)]
+#[repr(C)]
+pub struct Subscriber {
+    pub key: [u8; 32],
+    pub addr: u64,
+    pub lastping: u64,
+}
+
+impl Val<[u8;32]> for Subscriber {
+    fn key(&self) -> &[u8;32] {
+        return &self.key;
+    }
+}
+
+type SubT = HashT<[u8;32], Subscriber>;
+

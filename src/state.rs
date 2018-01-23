@@ -1,24 +1,10 @@
 use data;
 use result::{Result};
-use hasht::{HashT, Key, Val};
-
-#[derive(Default, Copy, Clone)]
-#[repr(C)]
-struct Account {
-    from: [u8; 32],
-    balance: u64,
-}
-
-impl Val<[u8;32]> for Account {
-    fn key(&self) -> &[u8;32] {
-        return &self.from;
-    }
-}
-type AccountT = HashT<[u8;32], Account>;
+use hasht::{Key};
 
 #[repr(C)]
 pub struct State {
-    accounts: Vec<Account>,
+    accounts: Vec<data::Account>,
     used: usize,
 }
 
@@ -26,28 +12,28 @@ impl State {
     pub fn new(size: usize) -> State {
         let mut v = Vec::new();
         v.clear();
-        v.resize(size, Account::default());
+        v.resize(size, data::Account::default());
         return State{accounts: v, used: 0};
     }
     fn double(&mut self) -> Result<()> {
         let mut v = Vec::new();
         let size = self.accounts.len()*2;
-        v.resize(size, Account::default());
-        AccountT::migrate(&self.accounts, &mut v)?;
+        v.resize(size, data::Account::default());
+        data::AccountT::migrate(&self.accounts, &mut v)?;
         self.accounts = v;
         return Ok(());
     }
-    unsafe fn find_accounts(state: &[Account],
+    unsafe fn find_accounts(state: &[data::Account],
                             fk: &[u8;32], tk: &[u8;32]) 
         -> Result<(usize, usize)> 
     {
-        let sf = AccountT::find(&state, fk)?;
-        let st = AccountT::find(&state, tk)?;
+        let sf = data::AccountT::find(&state, fk)?;
+        let st = data::AccountT::find(&state, tk)?;
         return Ok((sf, st));
     }
-    unsafe fn load_accounts<'a>(state: &'a mut [Account],
+    unsafe fn load_accounts<'a>(state: &'a mut [data::Account],
                                 (sf, st): (usize, usize))
-        -> (&'a mut Account, &'a mut Account) 
+        -> (&'a mut data::Account, &'a mut data::Account) 
     {
         let ptr = state.as_mut_ptr();
         let from = ptr.offset(sf as isize).as_mut().unwrap();
@@ -55,7 +41,7 @@ impl State {
         return (from, to);
     }
 
-    unsafe fn exec(state: &mut [Account],
+    unsafe fn exec(state: &mut [data::Account],
                    m: &mut data::Message,
                    num_new: &mut usize)
         -> Result<()>
@@ -95,7 +81,7 @@ impl State {
         }
         return Ok(());
     }
-    unsafe fn charge(acc: &mut Account,
+    unsafe fn charge(acc: &mut data::Account,
                      m: &mut data::Message) -> () {
             let combined = m.data.tx.amount + m.data.tx.fee;
             if acc.balance >= combined {
@@ -103,13 +89,13 @@ impl State {
                 acc.balance = acc.balance - combined;
             }
     }
-    fn new_account(to: &Account,
+    fn new_account(to: &data::Account,
                    num: &mut usize) -> () {
         if to.from.unused() {
             *num = *num + 1;
         }
     }
-    unsafe fn deposit(to: &mut Account, m: &mut data::Message) -> () {
+    unsafe fn deposit(to: &mut data::Account, m: &mut data::Message) -> () {
         to.balance = to.balance + m.data.tx.amount;
         if to.from.unused() {
             to.from = m.data.tx.to;
@@ -152,7 +138,7 @@ fn state_test2(b: &mut Bencher) {
     let mut s: State = State::new(NUM*2);
     let mut msgs = [data::Message::default(); NUM];
     init_msgs(&mut msgs);
-    let fp = AccountT::find(&s.accounts, &[255u8; 32]).expect("f");
+    let fp = data::AccountT::find(&s.accounts, &[255u8; 32]).expect("f");
     s.accounts[fp].from = [255u8;32];
     b.iter(|| {
         s.accounts[fp].balance = NUM as u64 * 2u64;
