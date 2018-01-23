@@ -3,6 +3,9 @@ language: rust
 rust:
   - nightly
 
+# Cache cargo symbols for faster build
+cache: cargo
+
 # Dependencies of kcov, used by coverage
 addons:
   apt:
@@ -11,12 +14,15 @@ addons:
       - libelf-dev
       - libdw-dev
       - binutils-dev
+      - cmake # also required for cargo-update
     sources:
       - kalakris-cmake
 
 before_script:
   - export PATH=$HOME/.cargo/bin:$PATH
-  - cargo install cargo-travis
+  - cargo install cargo-update || echo "cargo-update already installed"
+  - cargo install cargo-travis || echo "cargo-travis already installed"
+  - cargo install-update -a # update outdated cached binaries
 
 after_success:
   - cargo coveralls
