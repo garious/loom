@@ -74,4 +74,15 @@ impl Gossip {
         }
         return Ok(());
     }
+    //downstream broadcast algorithm
+    //everyone lower rank
+    //      l
+    //   s s s s 
+    // ss ss ss ss
+    // so basically arange a heap based on "rank" and 
+    // broadcast down the heap based on the width of the heap
+    pub fn downstream(&mut self) -> Result<()> {
+        return Ok(());
+    }
+
 }
