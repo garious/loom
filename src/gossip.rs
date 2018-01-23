@@ -81,6 +81,7 @@ impl Gossip {
     // ss ss ss ss
     // so basically arange a heap based on "rank" and 
     // broadcast down the heap based on the width of the heap
+    // rank is based on bond size
     pub fn downstream(&mut self) -> Result<()> {
         return Ok(());
     }
