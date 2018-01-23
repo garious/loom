@@ -3,11 +3,10 @@ use loom::net;
 use loom::state;
 use loom::gossip;
 use loom::data;
-use loom::result::Result;
 use std::mem::uninitialized;
 
-pub fn run() -> Result<()> {
-    let srv = net::server()?;
+pub fn main() {
+    let srv = net::server().expect("server");
     let mut s = state::State::new(1024);
     let mut g = gossip::Gossip::new(1024);
     let mut m: [data::Message; 1024] = unsafe { uninitialized() };
