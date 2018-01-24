@@ -17,7 +17,7 @@ path = "src/bin/spool.rs"
 name = "loom"
 path = "src/bin/loom.rs"
 
-[[client]]
+[[bin]]
 name = "client"
 path = "src/bin/client.rs"
 

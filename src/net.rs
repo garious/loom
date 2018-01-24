@@ -17,9 +17,9 @@ pub fn server() -> Result<UdpSocket> {
     return Ok(ret);
 }
 
-pub fn client(uri: str) -> Result<UdpSocket> {
-    let ret = UdpSocket::bind("0.0.0.0:0")?
-    ret.connect(str)?
+pub fn client(uri: &str) -> Result<UdpSocket> {
+    let ret = UdpSocket::bind("0.0.0.0:0")?;
+    ret.connect(uri)?;
     return Ok(ret);
 }
 
