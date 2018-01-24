@@ -48,7 +48,7 @@ impl Default for MessageData {
 }
 
 #[derive(PartialEq)]
-#[repr(C)]
+#[repr(u8)]
 pub enum Kind {
     Invalid,
     Transaction,
@@ -70,7 +70,7 @@ impl Clone for Kind {
 }
 
 #[derive(PartialEq)]
-#[repr(C)]
+#[repr(u8)]
 pub enum State {
     Unknown,
     Withdrawn,
@@ -95,9 +95,10 @@ pub const MAX_PACKET: usize = 1024*4;
 #[derive(Copy,Clone)]
 #[repr(C)]
 pub struct Message {
+    pub version: u32,
     pub kind: Kind,
     pub state: State,
-    pub unused: [u8; 6],
+    pub unused: u16,
     pub data: MessageData,
 }
 
