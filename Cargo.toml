@@ -16,3 +16,10 @@ path = "src/bin/spool.rs"
 [[bin]]
 name = "loom"
 path = "src/bin/loom.rs"
+
+[[client]]
+name = "client"
+path = "src/bin/client.rs"
+
+[dependencies]
+getopts = "0.2"

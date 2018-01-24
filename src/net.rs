@@ -17,6 +17,12 @@ pub fn server() -> Result<UdpSocket> {
     return Ok(ret);
 }
 
+pub fn client(uri: str) -> Result<UdpSocket> {
+    let ret = UdpSocket::bind("0.0.0.0:0")?
+    ret.connect(str)?
+    return Ok(ret);
+}
+
 pub fn read(socket: &UdpSocket, messages: &mut [Message], num: &mut usize) -> Result<()> {
     let sz = size_of::<Message>();
     let max = messages.len();
@@ -75,12 +81,11 @@ pub fn sendtov4(socket: &UdpSocket,
 fn server_test() {
     let sz = size_of::<Message>();
     let srv = server().expect("couldn't create a server");
-    let client = UdpSocket::bind("0.0.0.0:0").expect("client socket");
-    client.connect("127.0.0.1:12345").expect("connect to server");
+    let cli = client("127.0.0.1:12345").expect("client");
     let max = MAX_PACKET/sz;
     let mut m = [Message::default(); 26];
     let mut num = 0;
-    write(&client, &m[0..max], &mut num).expect("write");
+    write(&cli, &m[0..max], &mut num).expect("write");
     assert!(num == max);
     num = 0;
     read(&srv, &mut m, &mut num).expect("read");
