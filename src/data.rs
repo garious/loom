@@ -49,7 +49,6 @@ impl Default for MessageData {
 
 #[derive(PartialEq)]
 #[repr(C)]
-#[repr(u8)]
 pub enum Kind {
     Invalid,
     Transaction,
@@ -72,7 +71,6 @@ impl Clone for Kind {
 
 #[derive(PartialEq)]
 #[repr(C)]
-#[repr(u8)]
 pub enum State {
     Unknown,
     Withdrawn,
