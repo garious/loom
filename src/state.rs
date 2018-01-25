@@ -46,21 +46,21 @@ impl State {
                    num_new: &mut usize)
         -> Result<()>
    {
-        if m.kind != data::Kind::Transaction {
+        if m.pld.kind != data::Kind::Transaction {
             return Ok(());
         }
         let pos = Self::find_accounts(state,
-                                      &m.data.tx.from,
-                                      &m.data.tx.to)?;
+                                      &m.pld.data.tx.from,
+                                      &m.pld.data.tx.to)?;
         let (mut from, mut to) = Self::load_accounts(state, pos);
-        if from.from != m.data.tx.from {
+        if from.from != m.pld.data.tx.from {
             return Ok(());
         }
-        if to.from.unused() != true && to.from != m.data.tx.to {
+        if to.from.unused() != true && to.from != m.pld.data.tx.to {
             return Ok(());
         }
         Self::charge(&mut from, m);
-        if m.state != data::State::Withdrawn {
+        if m.pld.state != data::State::Withdrawn {
             return Ok(());
         }
         Self::new_account(&to, num_new);
@@ -83,9 +83,9 @@ impl State {
     }
     unsafe fn charge(acc: &mut data::Account,
                      m: &mut data::Message) -> () {
-            let combined = m.data.tx.amount + m.data.tx.fee;
+            let combined = m.pld.data.tx.amount + m.pld.data.tx.fee;
             if acc.balance >= combined {
-                m.state = data::State::Withdrawn;
+                m.pld.state = data::State::Withdrawn;
                 acc.balance = acc.balance - combined;
             }
     }
@@ -96,13 +96,13 @@ impl State {
         }
     }
     unsafe fn deposit(to: &mut data::Account, m: &mut data::Message) -> () {
-        to.balance = to.balance + m.data.tx.amount;
+        to.balance = to.balance + m.pld.data.tx.amount;
         if to.from.unused() {
-            to.from = m.data.tx.to;
-            assert!(m.data.tx.to.unused() == false);
+            to.from = m.pld.data.tx.to;
+            assert!(m.pld.data.tx.to.unused() == false);
             assert!(to.from.unused() == false);
         }
-        m.state = data::State::Deposited;
+        m.pld.state = data::State::Deposited;
     }
 
 }
@@ -120,15 +120,15 @@ fn state_test() {
 #[cfg(test)]
 fn init_msgs(msgs: &mut [data::Message]) {
     for (i,m) in msgs.iter_mut().enumerate() {
-        m.kind = data::Kind::Transaction;
+        m.pld.kind = data::Kind::Transaction;
         unsafe {
-            m.data.tx.to = [255u8; 32];
-            m.data.tx.to[0] = i as u8;
-            m.data.tx.from = [255u8; 32];
-            m.data.tx.fee = 1;
-            m.data.tx.amount = 1;
-            assert!(m.data.tx.to.unused() == false);
-            assert!(m.data.tx.from.unused() == false);
+            m.pld.data.tx.to = [255u8; 32];
+            m.pld.data.tx.to[0] = i as u8;
+            m.pld.data.tx.from = [255u8; 32];
+            m.pld.data.tx.fee = 1;
+            m.pld.data.tx.amount = 1;
+            assert!(m.pld.data.tx.to.unused() == false);
+            assert!(m.pld.data.tx.from.unused() == false);
         }
     }
 }

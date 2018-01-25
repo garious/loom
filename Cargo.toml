@@ -23,4 +23,7 @@ path = "src/bin/client.rs"
 
 [dependencies]
 getopts = "0.2"
-curve25519-dalek = "^0.14"
+sha2 = "0.7"
+
+[dependencies.ed25519-dalek]
+version = "^0.6"

@@ -9,7 +9,6 @@ pub struct Transaction {
     pub lvh_count: u64,
     pub amount: u64,
     pub fee: u64,
-    pub signature: [u8; 32],
 }
 
 #[derive(Copy,Clone)]
@@ -94,13 +93,35 @@ pub const MAX_PACKET: usize = 1024*4;
 #[derive(Default)]
 #[derive(Copy,Clone)]
 #[repr(C)]
-pub struct Message {
+pub struct Payload {
     pub version: u32,
     pub kind: Kind,
     pub state: State,
     pub unused: u16,
     pub data: MessageData,
 }
+
+#[derive(Copy,Clone)]
+#[repr(C)]
+pub struct Message {
+    pub pld: Payload,
+    pub sig: [u8; 64],
+}
+
+impl Default for Message {
+    fn default() -> Message {
+        let sig = [0,0,0,0, 0,0,0,0
+                  ,0,0,0,0, 0,0,0,0
+                  ,0,0,0,0, 0,0,0,0
+                  ,0,0,0,0, 0,0,0,0
+                  ,0,0,0,0, 0,0,0,0
+                  ,0,0,0,0, 0,0,0,0
+                  ,0,0,0,0, 0,0,0,0
+                  ,0,0,0,0, 0,0,0,0];
+        return Message{pld:Payload::default(), sig:sig};
+    }
+}
+
 
 #[derive(Default, Copy, Clone)]
 #[repr(C)]
