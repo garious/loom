@@ -1,3 +1,4 @@
+#![feature(rustc_private)] 
 extern crate loom;
 extern crate getopts;
 extern crate rand;
@@ -10,11 +11,11 @@ use std::mem::transmute;
 use std::mem::size_of;
 use std::slice::from_raw_parts;
 
-use rand::Rng;
+//use rand::Rng;
 use rand::OsRng;
 use sha2::Sha512;
 use ed25519_dalek::Keypair;
-use ed25519_dalek::Signature;
+//use ed25519_dalek::Signature;
 
 use loom::data;
 
