@@ -23,3 +23,4 @@ path = "src/bin/client.rs"
 
 [dependencies]
 getopts = "0.2"
+curve25519-dalek = "^0.14"
