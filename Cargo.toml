@@ -22,8 +22,5 @@ name = "client"
 path = "src/bin/client.rs"
 
 [dependencies]
-getopts = "0.2"
-sha2 = "0.7"
-
-[dependencies.ed25519-dalek]
-version = "^0.6"
+getopts = "^0.2"
+rust-crypto = "^0.2.36"

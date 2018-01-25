@@ -107,8 +107,8 @@ impl State {
 
 }
 
-#[cfg(test)]
-use test::Bencher;
+//#[cfg(test)]
+//use bencher::Bencher;
 
 #[test]
 fn state_test() {
@@ -117,32 +117,32 @@ fn state_test() {
     s.execute(&mut msgs).expect("e");
 }
 
-#[cfg(test)]
-fn init_msgs(msgs: &mut [data::Message]) {
-    for (i,m) in msgs.iter_mut().enumerate() {
-        m.pld.kind = data::Kind::Transaction;
-        unsafe {
-            m.pld.data.tx.to = [255u8; 32];
-            m.pld.data.tx.to[0] = i as u8;
-            m.pld.data.tx.from = [255u8; 32];
-            m.pld.data.tx.fee = 1;
-            m.pld.data.tx.amount = 1;
-            assert!(m.pld.data.tx.to.unused() == false);
-            assert!(m.pld.data.tx.from.unused() == false);
-        }
-    }
-}
-#[bench]
-fn state_test2(b: &mut Bencher) {
-    const NUM: usize = 128usize;
-    let mut s: State = State::new(NUM*2);
-    let mut msgs = [data::Message::default(); NUM];
-    init_msgs(&mut msgs);
-    let fp = data::AccountT::find(&s.accounts, &[255u8; 32]).expect("f");
-    s.accounts[fp].from = [255u8;32];
-    b.iter(|| {
-        s.accounts[fp].balance = NUM as u64 * 2u64;
-        s.execute(&mut msgs).expect("execute");
-        assert_eq!(s.accounts[fp].balance,0);
-    })
-}
+//#[cfg(test)]
+//fn init_msgs(msgs: &mut [data::Message]) {
+//    for (i,m) in msgs.iter_mut().enumerate() {
+//        m.pld.kind = data::Kind::Transaction;
+//        unsafe {
+//            m.pld.data.tx.to = [255u8; 32];
+//            m.pld.data.tx.to[0] = i as u8;
+//            m.pld.data.tx.from = [255u8; 32];
+//            m.pld.data.tx.fee = 1;
+//            m.pld.data.tx.amount = 1;
+//            assert!(m.pld.data.tx.to.unused() == false);
+//            assert!(m.pld.data.tx.from.unused() == false);
+//        }
+//    }
+//}
+//#[bench]
+//fn state_test2(b: &mut Bencher) {
+//    const NUM: usize = 128usize;
+//    let mut s: State = State::new(NUM*2);
+//    let mut msgs = [data::Message::default(); NUM];
+//    init_msgs(&mut msgs);
+//    let fp = data::AccountT::find(&s.accounts, &[255u8; 32]).expect("f");
+//    s.accounts[fp].from = [255u8;32];
+//    b.iter(|| {
+//        s.accounts[fp].balance = NUM as u64 * 2u64;
+//        s.execute(&mut msgs).expect("execute");
+//        assert_eq!(s.accounts[fp].balance,0);
+//    })
+//}

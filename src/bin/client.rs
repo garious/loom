@@ -1,9 +1,6 @@
-#![feature(rustc_private)] 
 extern crate loom;
 extern crate getopts;
-extern crate rand;
-extern crate sha2;
-extern crate ed25519_dalek;
+extern crate rust_crypto;
 
 use getopts::Options;
 use std::env;
@@ -11,23 +8,22 @@ use std::mem::transmute;
 use std::mem::size_of;
 use std::slice::from_raw_parts;
 
-//use rand::Rng;
-use rand::OsRng;
-use sha2::Sha512;
-use ed25519_dalek::Keypair;
-//use ed25519_dalek::Signature;
-
 use loom::data;
+use rust_crypto::ed25519;
+use rand::os::OsRng
 
 fn print_usage(program: &str, opts: Options) {
     let brief = format!("Usage: {} FILE [options]", program);
     print!("{}", opts.usage(&brief));
 }
 
+type Keypair = ([u8; 64], [u8; 32])
+
 fn new_keypair() -> Keypair {
-    
     let mut cspring: OsRng = OsRng::new().unwrap();
-    let keypair: Keypair = Keypair::generate::<Sha512>(&mut cspring);
+    let mut seed = [u8; 64];
+    csprint.fill_bytes(&mut seed);
+    let keypair: Keypair = ed25519::keypair(seed);
     return keypair;
 }
 
@@ -35,7 +31,7 @@ fn sign(kp: Keypair, msg: &mut data::Message) {
     let sz = size_of::<data::Payload>();
     let p = &msg.payload as *const data::Payload;
     let buf = transmute(from_raw_parts(p as *const u8, sz));
-    msg.sig = kp.sign::<Sha512>(buf);
+    msg.sig = ed25519::signature(buf, kp.0);
 }
 
 pub fn main() {
