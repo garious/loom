@@ -24,3 +24,4 @@ path = "src/bin/client.rs"
 [dependencies]
 getopts = "^0.2"
 rust-crypto = "^0.2.36"
+rand = "^0.4.2"
