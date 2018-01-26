@@ -2,6 +2,7 @@ use std::slice::from_raw_parts;
 use std::fs::File;
 use std::mem::transmute;
 use std::mem::size_of;
+use std::io::Read;
 
 use crypto::ed25519;
 use rand::Rng;
@@ -9,6 +10,7 @@ use rand::os::OsRng;
 
 use data;
 use serde_json;
+use aes;
 
 
 type Keypair = ([u64; 8], [u64; 4]);
@@ -27,13 +29,18 @@ impl Wallet {
         self.privkeys.push(pk.0);
         self.pubkeys.push(pk.1);
     }
-    pub fn read_wallet_from_file(path: &str) -> Wallet {
+    pub fn read_wallet_from_file(path: &str, pass: &str) -> Wallet {
         let file = File::open(path).expect("open wallet");
-        return serde_json::from_reader(file).expect("parsing error");
+        let mut e = Vec::new();
+        let sz = file.read_to_end(&mut e).expect("read_to_end");
+        let d = aes::decrypt(&e, pass.to_slice(), &[]).expect("decrypt");
+        return serde_json::from_slice(&d).expect("json decode");
     }
-    pub fn write_wallet_to_file(path: &str, w: &Wallet) {
+    pub fn write_wallet_to_file(path: &str, pass: &str, w: &Wallet) {
         let mut file = File::open(path).expect("open wallet");
-        serde_json::to_writer(&mut file, w).unwrap();
+        let d = serde_json::to_vec(w).expect("json encode");
+        let e = aes::encrypt(&d, &pass, &[]).expect("encrypt");
+        file.write(e);
     }
     pub fn new_keypair() -> Keypair {
         let mut rnd: OsRng = OsRng::new().unwrap();
