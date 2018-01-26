@@ -62,3 +62,8 @@ src/gossip.rs
 
 track gossip subscribers
 
+src/wallet.rs
+-------------
+
+wallet library
+
