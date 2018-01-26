@@ -10,8 +10,6 @@ extern crate rand;
 use crypto::{ symmetriccipher, buffer, aes, blockmodes };
 use crypto::buffer::{ ReadBuffer, WriteBuffer, BufferResult };
 
-use rand::{ Rng, OsRng };
-
 // Encrypt a buffer with the given key and iv using
 // AES-256/CBC/Pkcs encryption.
 pub fn encrypt(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, symmetriccipher::SymmetricCipherError> {

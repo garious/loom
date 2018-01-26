@@ -5,6 +5,7 @@ pub mod hasht;
 pub mod result;
 pub mod gossip;
 pub mod wallet;
+pub mod aes;
 extern crate core;
 #[macro_use]
 extern crate serde_derive;
