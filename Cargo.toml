@@ -22,4 +22,11 @@ name = "client"
 path = "src/bin/client.rs"
 
 [dependencies]
-getopts = "0.2"
+getopts = "^0.2"
+rust-crypto = "^0.2.36"
+rand = "^0.4.2"
+serde_json = "1.0"
+serde = "*"
+serde_derive = "*"
+rpassword = "1.0.0"
+

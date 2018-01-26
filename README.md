@@ -21,6 +21,25 @@ https://joinslack.loomprotocol.com
 
 https://loomprotocol.slack.com
 
+src/bin/client.rs
+-----------------
+
+user client binary that implements a basic wallet
+
+TBD, conform to a full wallet spec instead of rolling our own
+
+src/bin/spool.rs
+---------------
+
+spool daemon for verifiers
+
+
+src/bin/loom.rs
+---------------
+
+loom daemon
+
+
 src/data.rs
 -----------
 

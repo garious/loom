@@ -43,15 +43,15 @@ impl Gossip {
     unsafe fn exec(&mut self,
                    m: &data::Message,
                    new: &mut usize) -> Result<()> {
-        match m.kind {
-            data::Kind::Signature => self.now = m.data.poh.counter,
+        match m.pld.kind {
+            data::Kind::Signature => self.now = m.pld.data.poh.counter,
             data::Kind::Subscribe => {
                 let pos = SubT::find(&self.subs,
-                                     &m.data.sub.key)?;
+                                     &m.pld.data.sub.key)?;
                 let now = self.now;
-                let update = Subscriber{key: m.data.sub.key,
-                                        addr: m.data.sub.addr,
-                                        port: m.data.sub.port,
+                let update = Subscriber{key: m.pld.data.sub.key,
+                                        addr: m.pld.data.sub.addr,
+                                        port: m.pld.data.sub.port,
                                         lastping: now};
                 let g = self.subs.get_unchecked_mut(pos);
                 if g.key.unused() {
