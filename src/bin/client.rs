@@ -7,14 +7,20 @@ use std::env;
 
 use loom::wallet::Wallet;
 
+fn print_usage(program: &str, opts: Options) {                                
+    let brief = format!("Usage: {} FILE [options]", program);
+    print!("{}", opts.usage(&brief));                               
+} 
+
 fn new_key_pair() {
     let path = "loom.wallet";
     let prompt = "./loom.wallet password: ";
-    let pass = rpassword::prompt_password_stdout("prompt").unwrap();
-    let mut w = Wallet::from_file(path, pass).unwrap_or(Wallet::new())?;
-    let kp = w.new_keypair();
+    let pass = rpassword::prompt_password_stdout(prompt).unwrap();
+    let mut w = Wallet::from_file(path, pass.as_bytes()).unwrap_or(
+                    Wallet::new());
+    let kp = Wallet::new_keypair();
     w.add_key_pair(kp);
-    w.to_file(path, pass);
+    w.to_file(path, pass.as_bytes());
 }
 
 pub fn main() {
