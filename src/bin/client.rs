@@ -1,9 +1,4 @@
-extern crate serde;
-extern crate serde_json;
 extern crate loom;
-extern crate getopts;
-extern crate crypto;
-extern crate rand;
 
 use getopts::Options;
 use std::env;
