@@ -10,6 +10,7 @@ use rand::Rng;
 use rand::os::OsRng;
 
 use data;
+use result::Result;
 use serde_json;
 use aes;
 
@@ -30,12 +31,15 @@ impl Wallet {
         self.privkeys.push(pk.0);
         self.pubkeys.push(pk.1);
     }
-    pub fn read_wallet_from_file(path: &str, pass: &[u8]) -> Wallet {
-        let mut file = File::open(path).expect("open wallet");
+    pub fn from_file(path: &str, pass: &[u8]) -> Result<Wallet> {
+        let mut file = File::open(path)?;
         let mut e = Vec::new();
-        let _sz = file.read_to_end(&mut e).expect("read_to_end");
-        let d = aes::decrypt(&e, pass, &[]).expect("decrypt");
-        return serde_json::from_slice(&d).expect("json decode");
+        let _sz = file.read_to_end(&mut e)?;
+        let d = aes::decrypt(&e, pass, &[])?;
+        let w = serde_json::from_slice(&d)?;
+        return Ok(w);
+    }
+    pub fn read_or_new(path: &str, pass: &[u8]) -> Wallet {
     }
     pub fn write_wallet_to_file(path: &str, pass: &[u8], w: &Wallet) {
         let mut file = File::open(path).expect("open wallet");

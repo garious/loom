@@ -17,9 +17,9 @@ path = "src/bin/spool.rs"
 name = "loom"
 path = "src/bin/loom.rs"
 
-# [[bin]]
-# name = "client"
-# path = "src/bin/client.rs"
+[[bin]]
+name = "client"
+path = "src/bin/client.rs"
 
 [dependencies]
 getopts = "^0.2"
@@ -28,3 +28,5 @@ rand = "^0.4.2"
 serde_json = "1.0"
 serde = "*"
 serde_derive = "*"
+rpassword = "1.0.0"
+

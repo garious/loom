@@ -2,69 +2,17 @@ extern crate loom;
 
 use getopts::Options;
 use std::env;
-use std::mem::transmute;
-use std::mem::size_of;
-use std::slice::from_raw_parts;
-use std::fs::File;
 
 use loom::data;
-use crypto::ed25519;
-use rand::Rng;
-use rand::os::OsRng;
+use loom::wallet::Wallet;
 
-#[macro_use]
-extern crate serde_derive;
-
-type Keypair = ([u64; 8], [u64; 4]);
-
-#[derive(Serialize, Deserialize)]
-struct Wallet {
-    pubkeys: Vec<[u64;4]>,
-    privkeys: Vec<[u64;8]>,
-}
-
-fn print_usage(program: &str, opts: Options) {
-    let brief = format!("Usage: {} FILE [options]", program);
-    print!("{}", opts.usage(&brief));
-}
-
-fn read_wallet_from_file(path: &str) -> Wallet {
-    let file = File::open(path).expect("open wallet");
-    return serde_json::from_reader(file).expect("parsing error");
-}
-
-fn write_wallet_to_file(path: &str, w: &Wallet) {
-    let mut file = File::open(path).expect("open wallet");
-    serde_json::to_writer(&mut file, w).unwrap();
-}
-
-fn new_keypair() -> Keypair {
-    let mut rnd: OsRng = OsRng::new().unwrap();
-    let mut seed = [0u8; 64];
-    rnd.fill_bytes(&mut seed);
-    let (a,b) = ed25519::keypair(&seed);
-    let ap = unsafe {
-        transmute::<[u8;64], [u64;8]>(a)
-    };
-    let bp = unsafe {
-        transmute::<[u8;32], [u64;4]>(b)
-    };
-    return (ap, bp);
-}
-
-fn sign(kp: Keypair, msg: &mut data::Message) {
-    let sz = size_of::<data::Payload>();
-    let p = &msg.pld as *const data::Payload;
-    let buf = unsafe {
-        transmute(from_raw_parts(p as *const u8, sz))
-    };
-    let pk = unsafe {
-        transmute::<[u64;8], [u8;64]>(kp.0)
-    };
-    msg.sig = ed25519::signature(buf, &pk);
-}
 fn create() {
+    let path = "loom.wallet";
+    let prompt = "./loom.wallet password: ";
+    let pass = rpassword::prompt_password_stdout("prompt").unwrap();
+    let w = Self::from_file(path, pass).or_else(Wallet::new());
 }
+
 pub fn main() {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
