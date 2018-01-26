@@ -38,6 +38,11 @@ fn read_wallet_from_file(path: &str) -> Wallet {
     return serde_json::from_reader(file).expect("parsing error");
 }
 
+fn write_wallet_to_file(path: &str, w: &Wallet) {
+    let mut file = File::open(path).expect("open wallet");
+    serde_json::to_writer(&mut file, w).unwrap();
+}
+
 fn new_keypair() -> Keypair {
     let mut rnd: OsRng = OsRng::new().unwrap();
     let mut seed = [0u8; 64];
