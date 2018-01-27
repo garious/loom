@@ -5,7 +5,7 @@ extern crate getopts;
 use getopts::Options;
 use std::env;
 
-use loom::wallet::Wallet;
+use loom::wallet::{EncryptedWallet, Wallet};
 
 fn print_usage(program: &str, opts: Options) {                                
     let brief = format!("Usage: {} FILE [options]", program);
@@ -16,11 +16,13 @@ fn new_key_pair() {
     let path = "loom.wallet";
     let prompt = "./loom.wallet password: ";
     let pass = rpassword::prompt_password_stdout(prompt).unwrap();
-    let mut w = Wallet::from_file(path, pass.as_bytes()).unwrap_or(
-                    Wallet::new());
+    let ew = EncryptedWallet::from_file(path)
+            .unwrap_or(EncryptedWallet::new());
+    let mut w = Wallet::decrypt(ew, pass.as_bytes()).expect("decrypt");
     let kp = Wallet::new_keypair();
     w.add_key_pair(kp);
-    w.to_file(path, pass.as_bytes());
+    w.encrypt(pass.as_bytes()).expect("encrypt")
+        .to_file(path).expect("write");
 }
 
 pub fn main() {

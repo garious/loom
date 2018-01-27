@@ -18,32 +18,53 @@ use aes;
 type Keypair = ([u64; 8], [u64; 4]);
 
 #[derive(Serialize, Deserialize)]
+pub struct EncryptedWallet {
+    pub pubkeys: Vec<[u64;4]>,
+    pub privkeys: Vec<u8>,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct Wallet {
     pub pubkeys: Vec<[u64;4]>,
     pub privkeys: Vec<[u64;8]>,
 }
 
-impl Wallet {
-    pub fn new() -> Wallet {
-        return Wallet{pubkeys: Vec::new(), privkeys: Vec::new()}
+impl EncryptedWallet {
+    pub fn new() -> EncryptedWallet {
+        return EncryptedWallet{pubkeys: Vec::new(), privkeys: Vec::new()}
     }
+    pub fn from_file(path: &str) -> Result<EncryptedWallet> {
+        let mut file = File::open(path)?;
+        let mut e = Vec::new();
+        let _sz = file.read_to_end(&mut e)?;
+        let ew: EncryptedWallet = serde_json::from_slice(&e)?;
+        return Ok(ew);
+    }
+    pub fn to_file(&self, path: &str) -> Result<()> {
+        let mut file = File::open(path)?;
+        let d = serde_json::to_vec(self)?;
+        file.write_all(&d)?;
+        return Ok(());
+    }
+}
+
+impl Wallet {
     pub fn add_key_pair(&mut self, pk: Keypair) {
         self.privkeys.push(pk.0);
         self.pubkeys.push(pk.1);
     }
-    pub fn from_file(path: &str, pass: &[u8]) -> Result<Wallet> {
-        let mut file = File::open(path)?;
-        let mut e = Vec::new();
-        let _sz = file.read_to_end(&mut e)?;
-        let d = aes::decrypt(&e, pass, &[])?;
-        let w = serde_json::from_slice(&d)?;
+    pub fn decrypt(ew: EncryptedWallet, pass: &[u8]) -> Result<Wallet> {
+        let d = aes::decrypt(&ew.privkeys, pass, &[])?;
+        let pks = serde_json::from_slice(&d)?;
+        let w = Wallet{pubkeys: ew.pubkeys, privkeys:pks};
         return Ok(w);
+
     }
-    pub fn to_file(&self, path: &str, pass: &[u8]) {
-        let mut file = File::open(path).expect("open wallet");
-        let d = serde_json::to_vec(self).expect("json encode");
-        let e = aes::encrypt(&d, pass, &[]).expect("encrypt");
-        file.write_all(&e).expect("write_all");
+    pub fn encrypt(self, pass: &[u8]) -> Result<EncryptedWallet> {
+        let pks = serde_json::to_vec(&self.privkeys)?;
+        let e = aes::encrypt(&pks, pass, &[])?;
+        let ew = EncryptedWallet{pubkeys:self.pubkeys, privkeys: e};
+        return Ok(ew);
     }
     pub fn new_keypair() -> Keypair {
         let mut rnd: OsRng = OsRng::new().unwrap();
