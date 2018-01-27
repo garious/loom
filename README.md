@@ -21,6 +21,26 @@ https://joinslack.loomprotocol.com
 
 https://loomprotocol.slack.com
 
+v0.1 Roadmap
+-----------
+
+Limited feature testnet that can send transactions through the network.  Target hardware, 1mbps network connection, ~7ktps
+
+1. ~~tx state machine~~
+2. ~~broadcast network, super simple, no reed solomon coding~~
+3. singleton loom node on loom.loomprotocol.com
+4. wallet
+    ~~* key gen~~
+    ~~* load/store wallet from aes encrypted file~~
+    * tx send
+    * check bal
+5. cuda ecdsa verify
+
+v0.2 Roadmap
+-----------
+
+TBD
+
 src/bin/client.rs
 -----------------
 
