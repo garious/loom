@@ -77,6 +77,9 @@ pub fn sendtov4(socket: &UdpSocket,
 }
 
 
+#[cfg(test)]
+use result::retry;
+
 #[test]
 fn server_test() {
     let sz = size_of::<Message>();
@@ -85,10 +88,10 @@ fn server_test() {
     let max = MAX_PACKET/sz;
     let mut m = [Message::default(); 26];
     let mut num = 0;
-    result::retry(|| write(&cli, &m[0..max], &mut num)).expect("write");
+    retry(|| write(&cli, &m[0..max], &mut num)).expect("write");
     assert!(num == max);
     num = 0;
-    result::retry(|| read(&srv, &mut m, &mut num)).expect("read");
+    retry(|| read(&srv, &mut m, &mut num)).expect("read");
     assert!(num == max);
 }
 

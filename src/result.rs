@@ -45,13 +45,15 @@ impl core::convert::From<SymmetricCipherError> for Error {
 }
 
 fn get_os_err<T>(r: Result<T>) -> Option<i32> {
-    match op() {
-        IO(e) => e.last_os_error()
-        _ => ret
+    match r {
+        Error::IO(e) => e.last_os_error(),
+        _ => r 
     }
 }
 
-pub fn retry<T>(op: Fn(()) -> Result<T>) -> Result<T> {
+pub fn retry<F, T>(op: F) -> Result<T> 
+    where F: Fn() -> Result<T>
+{
 	loop {
     	let ret = op();
 		let c = get_os_err(ret);
