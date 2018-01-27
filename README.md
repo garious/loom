@@ -11,6 +11,11 @@ whitepaper
 -----------
 https://loomprotocol.com
 
+telegram
+--------
+
+https://t.me/loomprotocol
+
 slack
 ------
 * auto inviter
