@@ -35,8 +35,8 @@ Limited feature testnet that can send transactions through the network.  Target 
 2. ~~broadcast network, super simple, no reed solomon coding~~
 3. singleton loom node on loom.loomprotocol.com
 4. wallet
-    ~~* key gen~~
-    ~~* load/store wallet from aes encrypted file~~
+    * ~~key gen~~
+    * ~~load/store wallet from aes encrypted file~~
     * tx send
     * check bal
 5. cuda ecdsa verify
