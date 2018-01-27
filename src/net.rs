@@ -85,10 +85,10 @@ fn server_test() {
     let max = MAX_PACKET/sz;
     let mut m = [Message::default(); 26];
     let mut num = 0;
-    write(&cli, &m[0..max], &mut num).expect("write");
+    result::retry(|| write(&cli, &m[0..max], &mut num)).expect("write");
     assert!(num == max);
     num = 0;
-    read(&srv, &mut m, &mut num).expect("read");
+    result::retry(|| read(&srv, &mut m, &mut num)).expect("read");
     assert!(num == max);
 }
 

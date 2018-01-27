@@ -43,3 +43,21 @@ impl core::convert::From<SymmetricCipherError> for Error {
         return Error::AES(e);
     }
 }
+
+fn get_os_err<T>(r: Result<T>) -> Option<i32> {
+    match op() {
+        IO(e) => e.last_os_error()
+        _ => ret
+    }
+}
+
+pub fn retry<T>(op: Fn(()) -> Result<T>) -> Result<T> {
+	loop {
+    	let ret = op();
+		let c = get_os_err(ret);
+		match c {
+			Some(11) => (),
+			_ => return ret,
+		};
+	}
+}
