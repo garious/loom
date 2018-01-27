@@ -14,17 +14,8 @@ https://loomprotocol.com
 telegram
 --------
 
-https://t.me/loomprotocol
-
-slack
-------
-* auto inviter
-
-https://joinslack.loomprotocol.com
-
-* slack
-
-https://loomprotocol.slack.com
+* https://t.me/loomprotocol
+* https://web.telegram.org/#/im?p=@loomprotocol
 
 v0.1 Roadmap
 -----------
