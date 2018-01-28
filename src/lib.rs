@@ -14,6 +14,7 @@ extern crate serde_json;
 extern crate getopts;
 extern crate crypto;
 extern crate rand;
+extern crate mio;
 
 
 //#![cfg(test)]
