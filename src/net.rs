@@ -1,7 +1,7 @@
 #![allow(mutable_transmutes)]
 
 use std::cmp::min;
-use std::net::UdpSocket;
+use mio::net::UdpSocket;
 use std::mem::transmute;
 use std::mem::size_of;
 use std::slice::from_raw_parts;
@@ -12,14 +12,17 @@ use data::{Message, MAX_PACKET};
 use result::{Result};
 
 pub fn server() -> Result<UdpSocket> {
-    let ret = UdpSocket::bind("0.0.0.0:12345")?;
-    ret.set_nonblocking(true)?;
+    let addr = "0.0.0.0:12345".parse()?;
+    let ret = UdpSocket::bind(&addr)?;
+//    ret.set_nonblocking(true)?;
     return Ok(ret);
 }
 
 pub fn client(uri: &str) -> Result<UdpSocket> {
-    let ret = UdpSocket::bind("0.0.0.0:0")?;
-    ret.connect(uri)?;
+    let addr = "0.0.0.0:0".parse()?;
+    let ret = UdpSocket::bind(&addr)?;
+    let to = uri.parse()?;
+    ret.connect(to)?;
     return Ok(ret);
 }
 
@@ -69,7 +72,7 @@ pub fn sendtov4(socket: &UdpSocket,
             let p = &msgs[*num] as *const Message;
             let bz = min(MAX_PACKET / sz, max - *num) * sz;
             let buf = transmute(from_raw_parts(p as *const u8, bz));
-            let sent_size = socket.send_to(buf, addr)?;
+            let sent_size = socket.send_to(buf, &addr)?;
             *num = *num + sent_size / sz;
         }
     }
@@ -78,20 +81,44 @@ pub fn sendtov4(socket: &UdpSocket,
 
 
 #[cfg(test)]
-use result::retry;
+use mio;
 
 #[test]
 fn server_test() {
+	const READABLE: mio::Token = mio::Token(0);
+	const WRITABLE: mio::Token = mio::Token(1);
+	let poll = mio::Poll::new().unwrap();
     let sz = size_of::<Message>();
     let srv = server().expect("couldn't create a server");
     let cli = client("127.0.0.1:12345").expect("client");
     let max = MAX_PACKET/sz;
     let mut m = [Message::default(); 26];
     let mut num = 0;
-    retry(|| write(&cli, &m[0..max], &mut num)).expect("write");
+	poll.register(&cli, WRITABLE, mio::Ready::writable(),
+              mio::PollOpt::edge()).unwrap();
+	let mut events = mio::Events::with_capacity(8);
+    poll.poll(&mut events, None).unwrap();
+    for event in events.iter() {
+        match event.token() {
+            WRITABLE => {
+                write(&cli, &m[0..max], &mut num).expect("write");
+            }
+            _ => ()
+        }
+    }
     assert!(num == max);
     num = 0;
-    retry(|| read(&srv, &mut m, &mut num)).expect("read");
+	poll.register(&srv, READABLE, mio::Ready::readable(),
+              mio::PollOpt::edge()).unwrap();
+    poll.poll(&mut events, None).unwrap();
+    for event in events.iter() {
+        match event.token() {
+            READABLE => {
+                read(&srv, &mut m, &mut num).expect("read");
+            }
+            _ => ()
+        }
+    }
     assert!(num == max);
 }
 
