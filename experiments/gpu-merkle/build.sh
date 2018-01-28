@@ -1,0 +1,1 @@
+/usr/local/cuda-9.0/bin/nvcc -std=c++11 --ptxas-options=-v -DuECC_OPTIMIZATION_LEVEL=3 --gpu-architecture=compute_61 main.cu sha256.cu -O3 -DuECC_VLI_NATIVE_LITTLE_ENDIAN=1 -DuECC_WORD_SIZE=4 -DSUPPORTS_INT128=0 -o gpumerkle
