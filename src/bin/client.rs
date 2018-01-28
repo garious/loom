@@ -4,6 +4,7 @@ extern crate getopts;
 
 use getopts::Options;
 use std::env;
+use std::string::String;
 
 use loom::wallet::{EncryptedWallet, Wallet};
 
@@ -25,18 +26,26 @@ fn new_key_pair() {
         .to_file(path).expect("write");
 }
 
+fn transfer(_from: String, _to: String, _amnt: u64) {
+}
+
+fn balance(_addr: String) {
+}
+
+
 pub fn main() {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
 
     let mut opts = Options::new();
     opts.optflag("c", "", "create a new address");
-    opts.optopt("t", "", "transfer", "ADDRESS");
-    opts.optopt("f", "", "from address", "ADDRESS");
-    opts.optopt("a", "", "amount", "AMOUNT");
-    opts.optopt("b", "", "balance", "ADDRESS");
+    opts.optflag("x", "", "transfer");
+    opts.optflag("b", "", "check the balance of destination address");
     opts.optflag("l", "list", "list your addresses and balances");
     opts.optflag("h", "help", "print this help menu");
+    opts.optopt("t", "", "destination address", "ADDRESS");
+    opts.optopt("f", "", "source address", "ADDRESS");
+    opts.optopt("a", "", "amount", "AMOUNT");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => { m }
         Err(f) => { panic!(f.to_string()) }
@@ -48,5 +57,18 @@ pub fn main() {
     if matches.opt_present("c") {
         new_key_pair();
         return;
+    } else if matches.opt_present("x") {
+        let to = matches.opt_str("t").expect("missing destination address");
+        let from = matches.opt_str("f").expect("missing source address");
+        let astr = matches.opt_str("a").expect("missing ammount");
+        let a = astr.parse().expect("ammount is not a number");
+        transfer(to, from, a);
+        return;
+    } else if matches.opt_present("b") {
+        let to = matches.opt_str("t").expect("missing destination address");
+        balance(to);
+        return;
     }
+
+
 }
