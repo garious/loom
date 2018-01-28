@@ -4,6 +4,7 @@ use core;
 use crypto;
 use crypto::symmetriccipher::SymmetricCipherError;
 
+
 #[derive(Debug)]
 pub enum Error {
     IO(std::io::Error),
@@ -46,8 +47,8 @@ impl core::convert::From<SymmetricCipherError> for Error {
 
 fn get_os_err<T>(r: Result<T>) -> Option<i32> {
     match r {
-        Error::IO(e) => e.last_os_error(),
-        _ => r 
+        Err(Error::IO(e)) => e.raw_os_error(),
+        _ => None
     }
 }
 
