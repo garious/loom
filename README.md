@@ -31,6 +31,8 @@ Limited feature testnet that can send transactions through the network.  Target 
     * tx send
     * check bal
 5. cuda ecdsa verify
+6. save ledger
+7. connect, download history
 
 v0.2 Roadmap
 -----------
