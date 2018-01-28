@@ -34,11 +34,6 @@ Limited feature testnet that can send transactions through the network.  Target 
 6. save ledger
 7. connect, download history
 
-v0.2 Roadmap
------------
-
-TBD
-
 src/bin/client.rs
 -----------------
 
