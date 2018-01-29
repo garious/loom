@@ -30,9 +30,11 @@ Limited feature testnet that can send transactions through the network.  Target 
     * ~~load/store wallet from aes encrypted file~~
     * tx send
     * check bal
-5. cuda ecdsa verify
-6. save ledger
-7. connect, download history
+5. save ledger
+6. connect, download history
+7. ~~cuda ecdsa verify~~
+8. ~~cuda state merkle~~
+9. cuda poh verify
 
 src/bin/client.rs
 -----------------
