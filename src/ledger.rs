@@ -1,3 +1,4 @@
+#![allow(mutable_transmutes)]
 use std::fs::File;
 use std::io::{Seek, SeekFrom, Write, Read};
 use result::Result;
@@ -34,7 +35,7 @@ impl Ledger {
     pub fn read(&mut self, msgs: &mut [data::Message], start: u64) -> Result<()> {
         //TODO(aeyakovenko): the fastest way to do this:
         // have the msgs memory be mmaped
-        // then `splice` into mmap fd
+        // then `splice` from mmap fd
         let mut file = File::open(LEDGER)?;
         let p = &mut msgs[0] as *mut data::Message;
         let sz = size_of::<data::Message>();
