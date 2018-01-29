@@ -1,31 +1,33 @@
 use std::fs::File;
+use std::io::Write;
 use result::Result;
 use std::mem::transmute;
 use std::mem::size_of;
 use std::slice::from_raw_parts;
 use data;
 
-struct Ledger {
-    file: File;
-};
+pub struct Ledger {
+    file: File,
+}
 
 impl Ledger {
-    fn new(): Result<Ledger> {
-        let mut file = File::open(path)?;
+    pub fn new() -> Result<Ledger> {
+        const LEDGER: &str = "./loom.ledger";
+        let mut file = File::open(LEDGER)?;
         let mut l = Ledger{file: file};
-        return l;
+        return Ok(l);
     }
-        
-    fn append(msgs: &[data::Message]) {
+    pub fn append(&mut self, msgs: &[data::Message]) -> Result<()> {
         //TODO(aeyakovenko): the fastest way to do this:
         // have the msgs memory be mmaped
         // then `splice` the mmap fd into the file fd
-        let p = msgs as *const Message;
-        let sz = size_of::<Message>();
+        let p = &msgs[0] as *const data::Message;
+        let sz = size_of::<data::Message>();
         let bz = msgs.len() * sz;
         let buf = unsafe {
             transmute(from_raw_parts(p as *const u8, bz))
         };
-        file.write_all(&buf);
+        self.file.write_all(buf);
+        return Ok(());
     }
 }
