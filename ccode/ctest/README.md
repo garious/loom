@@ -1,5 +1,7 @@
-Loom blockchain for 10b people
-==============================
+Loom
+====
+
+An implementation in C.  This effort was abandonded in favor of Rust!
 
 src/loom.c
 loom takes tranascations, schedules them in the most optimial to execute way
