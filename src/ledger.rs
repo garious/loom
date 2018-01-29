@@ -11,6 +11,7 @@ pub struct Ledger {
     file: File,
 }
 
+//TODO(aeyakovenko): config file somewhere
 const LEDGER: &str = "./loom.ledger";
 
 impl Ledger {
