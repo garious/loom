@@ -32,7 +32,7 @@ where
                 }
             }
         }
-        return Err(Error::NoSpace);
+        Err(Error::NoSpace)
     }
     pub fn migrate(src: &[V], dst: &mut [V]) -> Result<()> {
         for i in src.iter() {
@@ -44,7 +44,7 @@ where
                 *dst.get_unchecked_mut(p) = (*i).clone();
             }
         }
-        return Ok(());
+        Ok(())
     }
 }
 

@@ -15,7 +15,7 @@ pub fn server() -> Result<UdpSocket> {
     let addr = "0.0.0.0:12345".parse()?;
     let ret = UdpSocket::bind(&addr)?;
     //    ret.set_nonblocking(true)?;
-    return Ok(ret);
+    Ok(ret)
 }
 
 pub fn client(uri: &str) -> Result<UdpSocket> {
@@ -23,7 +23,7 @@ pub fn client(uri: &str) -> Result<UdpSocket> {
     let ret = UdpSocket::bind(&addr)?;
     let to = uri.parse()?;
     ret.connect(to)?;
-    return Ok(ret);
+    Ok(ret)
 }
 
 pub fn read(socket: &UdpSocket, messages: &mut [Message], num: &mut usize) -> Result<()> {
@@ -40,7 +40,7 @@ pub fn read(socket: &UdpSocket, messages: &mut [Message], num: &mut usize) -> Re
             *num = *num + nrecv / sz;
         }
     }
-    return Ok(());
+    Ok(())
 }
 
 pub fn write(socket: &UdpSocket, messages: &[Message], num: &mut usize) -> Result<()> {
@@ -55,7 +55,7 @@ pub fn write(socket: &UdpSocket, messages: &[Message], num: &mut usize) -> Resul
             *num = *num + sent_size / sz;
         }
     }
-    return Ok(());
+    Ok(())
 }
 
 pub fn sendtov4(
@@ -79,7 +79,7 @@ pub fn sendtov4(
             *num = *num + sent_size / sz;
         }
     }
-    return Ok(());
+    Ok(())
 }
 
 #[cfg(test)]

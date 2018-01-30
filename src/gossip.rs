@@ -13,7 +13,7 @@ pub struct Subscriber {
 
 impl Val<[u8; 32]> for Subscriber {
     fn key(&self) -> &[u8; 32] {
-        return &self.key;
+        &self.key
     }
 }
 
@@ -30,11 +30,11 @@ impl Gossip {
         let mut v = Vec::new();
         v.clear();
         v.resize(size, Subscriber::default());
-        return Gossip {
+        Gossip {
             subs: v,
             now: 0,
             used: 0,
-        };
+        }
     }
     fn double(&mut self) -> Result<()> {
         let mut v = Vec::new();
@@ -42,7 +42,7 @@ impl Gossip {
         v.resize(size, Subscriber::default());
         SubT::migrate(&self.subs, &mut v)?;
         self.subs = v;
-        return Ok(());
+        Ok(())
     }
     unsafe fn exec(&mut self, m: &data::Message, new: &mut usize) -> Result<()> {
         match m.pld.kind {
@@ -64,7 +64,7 @@ impl Gossip {
             }
             _ => return Ok(()),
         }
-        return Ok(());
+        Ok(())
     }
     pub fn execute(&mut self, msgs: &mut [data::Message]) -> Result<()> {
         for m in msgs.iter() {
@@ -77,6 +77,6 @@ impl Gossip {
                 self.double()?;
             }
         }
-        return Ok(());
+        Ok(())
     }
 }

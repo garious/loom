@@ -41,9 +41,9 @@ pub union MessageData {
 
 impl Default for MessageData {
     fn default() -> MessageData {
-        return MessageData {
+        MessageData {
             tx: Transaction::default(),
-        };
+        }
     }
 }
 
@@ -58,7 +58,7 @@ pub enum Kind {
 
 impl Default for Kind {
     fn default() -> Kind {
-        return Kind::Invalid;
+        Kind::Invalid
     }
 }
 impl Copy for Kind {}
@@ -86,7 +86,7 @@ impl Clone for State {
 
 impl Default for State {
     fn default() -> State {
-        return State::Unknown;
+        State::Unknown
     }
 }
 pub const MAX_PACKET: usize = 1024 * 4;
@@ -119,10 +119,10 @@ impl Default for Message {
                   ,0,0,0,0, 0,0,0,0
                   ,0,0,0,0, 0,0,0,0
                   ,0,0,0,0, 0,0,0,0];
-        return Message {
+        Message {
             pld: Payload::default(),
             sig: sig,
-        };
+        }
     }
 }
 
@@ -144,17 +144,17 @@ impl Key for [u8; 32] {
                  ((self[5] as u64) << ((7 - 5) * 8)) |
                  ((self[6] as u64) << ((7 - 6) * 8)) |
                  ((self[7] as u64) << ((7 - 7) * 8)) ;
-        return st as usize;
+        st as usize
     }
 
     fn unused(&self) -> bool {
-        return *self == [0u8; 32];
+        *self == [0u8; 32]
     }
 }
 
 impl Val<[u8; 32]> for Account {
     fn key(&self) -> &[u8; 32] {
-        return &self.from;
+        &self.from
     }
 }
 pub type AccountT = HashT<[u8; 32], Account>;

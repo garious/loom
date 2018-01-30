@@ -13,10 +13,10 @@ impl State {
         let mut v = Vec::new();
         v.clear();
         v.resize(size, data::Account::default());
-        return State {
+        State {
             accounts: v,
             used: 0,
-        };
+        }
     }
     fn double(&mut self) -> Result<()> {
         let mut v = Vec::new();
@@ -24,7 +24,7 @@ impl State {
         v.resize(size, data::Account::default());
         data::AccountT::migrate(&self.accounts, &mut v)?;
         self.accounts = v;
-        return Ok(());
+        Ok(())
     }
     unsafe fn find_accounts(
         state: &[data::Account],
@@ -33,7 +33,7 @@ impl State {
     ) -> Result<(usize, usize)> {
         let sf = data::AccountT::find(&state, fk)?;
         let st = data::AccountT::find(&state, tk)?;
-        return Ok((sf, st));
+        Ok((sf, st))
     }
     unsafe fn load_accounts<'a>(
         state: &'a mut [data::Account],
@@ -42,7 +42,7 @@ impl State {
         let ptr = state.as_mut_ptr();
         let from = ptr.offset(sf as isize).as_mut().unwrap();
         let to = ptr.offset(st as isize).as_mut().unwrap();
-        return (from, to);
+        (from, to)
     }
 
     unsafe fn exec(
@@ -67,7 +67,7 @@ impl State {
         }
         Self::new_account(&to, num_new);
         Self::deposit(&mut to, m);
-        return Ok(());
+        Ok(())
     }
     pub fn execute(&mut self, msgs: &mut [data::Message]) -> Result<()> {
         let mut num_new = 0;
@@ -81,7 +81,7 @@ impl State {
             }
             num_new = 0;
         }
-        return Ok(());
+        Ok(())
     }
     unsafe fn charge(acc: &mut data::Account, m: &mut data::Message) -> () {
         let combined = m.pld.data.tx.amount + m.pld.data.tx.fee;

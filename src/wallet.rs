@@ -30,23 +30,23 @@ pub struct Wallet {
 
 impl EncryptedWallet {
     pub fn new() -> EncryptedWallet {
-        return EncryptedWallet {
+        EncryptedWallet {
             pubkeys: Vec::new(),
             privkeys: Vec::new(),
-        };
+        }
     }
     pub fn from_file(path: &str) -> Result<EncryptedWallet> {
         let mut file = File::open(path)?;
         let mut e = Vec::new();
         let _sz = file.read_to_end(&mut e)?;
         let ew: EncryptedWallet = serde_json::from_slice(&e)?;
-        return Ok(ew);
+        Ok(ew)
     }
     pub fn to_file(&self, path: &str) -> Result<()> {
         let mut file = File::open(path)?;
         let d = serde_json::to_vec(self)?;
         file.write_all(&d)?;
-        return Ok(());
+        Ok(())
     }
 }
 
@@ -62,7 +62,7 @@ impl Wallet {
             pubkeys: ew.pubkeys,
             privkeys: pks,
         };
-        return Ok(w);
+        Ok(w)
     }
     pub fn encrypt(self, pass: &[u8]) -> Result<EncryptedWallet> {
         let pks = serde_json::to_vec(&self.privkeys)?;
@@ -71,7 +71,7 @@ impl Wallet {
             pubkeys: self.pubkeys,
             privkeys: e,
         };
-        return Ok(ew);
+        Ok(ew)
     }
     pub fn new_keypair() -> Keypair {
         let mut rnd: OsRng = OsRng::new().unwrap();
@@ -80,7 +80,7 @@ impl Wallet {
         let (a, b) = ed25519::keypair(&seed);
         let ap = unsafe { transmute::<[u8; 64], [u64; 8]>(a) };
         let bp = unsafe { transmute::<[u8; 32], [u64; 4]>(b) };
-        return (ap, bp);
+        (ap, bp)
     }
     pub fn sign(kp: Keypair, msg: &mut data::Message) {
         let sz = size_of::<data::Payload>();
