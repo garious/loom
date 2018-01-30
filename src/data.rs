@@ -1,6 +1,5 @@
 use hasht::{HashT, Key, Val};
-#[derive(Default)]
-#[derive(Copy,Clone)]
+#[derive(Default, Copy, Clone)]
 #[repr(C)]
 pub struct Transaction {
     pub lvh: [u8; 32],
@@ -11,28 +10,28 @@ pub struct Transaction {
     pub fee: u64,
 }
 
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 #[repr(C)]
 pub struct POH {
     pub hash: [u8; 32],
     pub counter: u64,
 }
 
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Signature {
     pub data: [u8; 64],
 }
 
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Subscriber {
     pub key: [u8; 32],
-    pub addr: [u8;4],
+    pub addr: [u8; 4],
     pub port: u16,
 }
 
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 #[repr(C)]
 pub union MessageData {
     pub tx: Transaction,
@@ -42,7 +41,9 @@ pub union MessageData {
 
 impl Default for MessageData {
     fn default() -> MessageData {
-        return MessageData{tx : Transaction::default()};
+        return MessageData {
+            tx: Transaction::default(),
+        };
     }
 }
 
@@ -60,7 +61,7 @@ impl Default for Kind {
         return Kind::Invalid;
     }
 }
-impl Copy for Kind { }
+impl Copy for Kind {}
 
 impl Clone for Kind {
     fn clone(&self) -> Kind {
@@ -75,7 +76,7 @@ pub enum State {
     Withdrawn,
     Deposited,
 }
-impl Copy for State { }
+impl Copy for State {}
 
 impl Clone for State {
     fn clone(&self) -> State {
@@ -88,10 +89,9 @@ impl Default for State {
         return State::Unknown;
     }
 }
-pub const MAX_PACKET: usize = 1024*4;
+pub const MAX_PACKET: usize = 1024 * 4;
 
-#[derive(Default)]
-#[derive(Copy,Clone)]
+#[derive(Default, Copy, Clone)]
 #[repr(C)]
 pub struct Payload {
     pub version: u32,
@@ -101,7 +101,7 @@ pub struct Payload {
     pub data: MessageData,
 }
 
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Message {
     pub pld: Payload,
@@ -110,6 +110,7 @@ pub struct Message {
 
 impl Default for Message {
     fn default() -> Message {
+        #[cfg_attr(rustfmt, rustfmt_skip)]
         let sig = [0,0,0,0, 0,0,0,0
                   ,0,0,0,0, 0,0,0,0
                   ,0,0,0,0, 0,0,0,0
@@ -118,10 +119,12 @@ impl Default for Message {
                   ,0,0,0,0, 0,0,0,0
                   ,0,0,0,0, 0,0,0,0
                   ,0,0,0,0, 0,0,0,0];
-        return Message{pld:Payload::default(), sig:sig};
+        return Message {
+            pld: Payload::default(),
+            sig: sig,
+        };
     }
 }
-
 
 #[derive(Default, Copy, Clone)]
 #[repr(C)]
@@ -132,6 +135,7 @@ pub struct Account {
 
 impl Key for [u8; 32] {
     fn start(&self) -> usize {
+        #[cfg_attr(rustfmt, rustfmt_skip)]
         let st = ((self[0] as u64) << ((7 - 0) * 8)) |
                  ((self[1] as u64) << ((7 - 1) * 8)) |
                  ((self[2] as u64) << ((7 - 2) * 8)) |
@@ -142,16 +146,15 @@ impl Key for [u8; 32] {
                  ((self[7] as u64) << ((7 - 7) * 8)) ;
         return st as usize;
     }
- 
+
     fn unused(&self) -> bool {
         return *self == [0u8; 32];
     }
 }
 
-impl Val<[u8;32]> for Account {
-    fn key(&self) -> &[u8;32] {
+impl Val<[u8; 32]> for Account {
+    fn key(&self) -> &[u8; 32] {
         return &self.from;
     }
 }
-pub type AccountT = HashT<[u8;32], Account>;
-
+pub type AccountT = HashT<[u8; 32], Account>;

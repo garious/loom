@@ -13,13 +13,12 @@ pub fn main() {
     loop {
         let mut num = 0;
         let start = num;
-        net::read(&srv, &mut m[start .. ], &mut num).expect("read");
+        net::read(&srv, &mut m[start..], &mut num).expect("read");
         let end = num;
-        s.execute(&mut m[start .. end]).expect("state");
-        g.execute(&mut m[start .. end]).expect("gossip");
+        s.execute(&mut m[start..end]).expect("state");
+        g.execute(&mut m[start..end]).expect("gossip");
         for s in g.subs.iter() {
-            net::sendtov4(&srv, &m[start .. end], &mut num,
-                          s.addr, s.port).expect("send");
+            net::sendtov4(&srv, &m[start..end], &mut num, s.addr, s.port).expect("send");
         }
     }
 }

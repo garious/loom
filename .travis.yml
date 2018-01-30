@@ -1,3 +1,11 @@
 language: rust
 rust:
   - stable
+cache: cargo
+before_script:
+- export PATH="$PATH:$HOME/.cargo/bin"
+- which rustfmt || cargo install rustfmt-nightly
+script:
+- cargo +nightly fmt -- --write-mode=diff
+- cargo build
+- cargo test

@@ -4,7 +4,6 @@ use core;
 use crypto;
 use crypto::symmetriccipher::SymmetricCipherError;
 
-
 #[derive(Debug)]
 pub enum Error {
     IO(std::io::Error),
@@ -17,10 +16,10 @@ pub enum Error {
 
 impl PartialEq for Error {
     fn eq(&self, other: &Self) -> bool {
-        match(self, other) {
+        match (self, other) {
             (&Error::NoSpace, &Error::NoSpace) => true,
             (&Error::ToLarge, &Error::ToLarge) => true,
-            _ => false
+            _ => false,
         }
     }
     fn ne(&self, other: &Self) -> bool {
