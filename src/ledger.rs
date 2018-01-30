@@ -20,6 +20,28 @@ impl Ledger {
         let l = Ledger{file: file};
         return Ok(l);
     }
+    fn get_ledger(&self, get: &data::GetLedger) -> Result<()> {
+
+    }
+    fn exec(&self, msgs: &data::Message) - Result<()> {
+        match m.pld.kind {
+            case data::Kind::GetLedger => {
+                let get = unsafe {&m.pld.data.get};
+                get_ledger(get)?;
+            }
+            _ => _
+        };
+        return Ok(());
+    }
+    pub fn execute(&self, msgs: &mut [data::Message]) -> Result<()> {
+        for m in msgs.iter_mut() {
+            unsafe {
+                self.exec(&m)?;
+            }
+        }
+        return Ok(());
+    }
+
     pub fn append(&mut self, msgs: &[data::Message]) -> Result<()> {
         //TODO(aeyakovenko): the fastest way to do this:
         // have the msgs memory be mmaped
@@ -33,7 +55,7 @@ impl Ledger {
         self.file.write_all(buf)?;
         return Ok(());
     }
-    pub fn read(&mut self, msgs: &mut [data::Message], start: u64) -> Result<()> {
+    pub fn read(msgs: &mut [data::Message], start: u64) -> Result<()> {
         //TODO(aeyakovenko): the fastest way to do this:
         // have the msgs memory be mmaped
         // then `splice` from mmap fd
@@ -45,7 +67,7 @@ impl Ledger {
         let buf = unsafe {
             transmute(from_raw_parts(p as *mut u8, bz))
         };
-        self.file.read(buf)?;
+        file.read(buf)?;
         return Ok(());
     }
 }
