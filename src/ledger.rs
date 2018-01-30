@@ -21,27 +21,24 @@ impl Ledger {
         return Ok(l);
     }
     fn get_ledger(&self, get: &data::GetLedger) -> Result<()> {
-
+        return Ok(());
     }
-    fn exec(&self, msgs: &data::Message) - Result<()> {
+    fn exec(&self, m: &data::Message) -> Result<()> {
         match m.pld.kind {
-            case data::Kind::GetLedger => {
+            data::Kind::GetLedger => {
                 let get = unsafe {&m.pld.data.get};
-                get_ledger(get)?;
+                self.get_ledger(get)?;
             }
-            _ => _
+            _ => return Ok(()),
         };
         return Ok(());
     }
     pub fn execute(&self, msgs: &mut [data::Message]) -> Result<()> {
         for m in msgs.iter_mut() {
-            unsafe {
-                self.exec(&m)?;
-            }
+            self.exec(&m)?;
         }
         return Ok(());
     }
-
     pub fn append(&mut self, msgs: &[data::Message]) -> Result<()> {
         //TODO(aeyakovenko): the fastest way to do this:
         // have the msgs memory be mmaped

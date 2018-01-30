@@ -34,8 +34,8 @@ pub struct Subscriber {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct GetLedger {
-    pub start: u64;
-    pub num: u64;
+    pub start: u64,
+    pub num: u64,
 }
 
 #[derive(Copy,Clone)]
