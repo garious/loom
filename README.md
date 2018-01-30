@@ -17,24 +17,10 @@ telegram
 * https://t.me/loomprotocol
 * https://web.telegram.org/#/im?p=@loomprotocol
 
-v0.1 Roadmap
------------
+Roadmap
+-------
 
-Limited feature testnet that can send transactions through the network.  Target hardware, 1mbps network connection, ~7ktps
-
-1. ~~tx state machine~~
-2. ~~broadcast network, super simple, no reed solomon coding~~
-3. singleton loom node on loom.loomprotocol.com
-4. wallet
-    * ~~key gen~~
-    * ~~load/store wallet from aes encrypted file~~
-    * tx send
-    * check bal
-5. save ledger
-6. connect, download history
-7. ~~cuda ecdsa verify~~
-8. ~~cuda state merkle~~
-9. cuda poh verify
+https://github.com/loomprotocol/loom/milestones
 
 src/bin/client.rs
 -----------------

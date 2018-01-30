@@ -1,3 +1,11 @@
 language: rust
 rust:
-  - stable
+  - beta
+cache: cargo
+before_script:
+- export PATH="$PATH:$HOME/.cargo/bin"
+- rustup component add rustfmt-preview --toolchain=beta
+script:
+- cargo fmt -- --write-mode=diff
+- cargo build
+- cargo test

@@ -9,13 +9,13 @@ use std::net::SocketAddr;
 use std::net::Ipv4Addr;
 use std::net::IpAddr;
 use data::{Message, MAX_PACKET};
-use result::{Result};
+use result::Result;
 
 pub fn server() -> Result<UdpSocket> {
     let addr = "0.0.0.0:12345".parse()?;
     let ret = UdpSocket::bind(&addr)?;
-//    ret.set_nonblocking(true)?;
-    return Ok(ret);
+    //    ret.set_nonblocking(true)?;
+    Ok(ret)
 }
 
 pub fn client(uri: &str) -> Result<UdpSocket> {
@@ -23,7 +23,7 @@ pub fn client(uri: &str) -> Result<UdpSocket> {
     let ret = UdpSocket::bind(&addr)?;
     let to = uri.parse()?;
     ret.connect(to)?;
-    return Ok(ret);
+    Ok(ret)
 }
 
 pub fn read(socket: &UdpSocket, messages: &mut [Message], num: &mut usize) -> Result<()> {
@@ -37,10 +37,10 @@ pub fn read(socket: &UdpSocket, messages: &mut [Message], num: &mut usize) -> Re
             }
             let buf = transmute(from_raw_parts(p as *mut u8, MAX_PACKET));
             let (nrecv, _from) = socket.recv_from(buf)?;
-            *num = *num + nrecv/sz;
+            *num = *num + nrecv / sz;
         }
     }
-    return Ok(());
+    Ok(())
 }
 
 pub fn write(socket: &UdpSocket, messages: &[Message], num: &mut usize) -> Result<()> {
@@ -55,13 +55,16 @@ pub fn write(socket: &UdpSocket, messages: &[Message], num: &mut usize) -> Resul
             *num = *num + sent_size / sz;
         }
     }
-    return Ok(());
+    Ok(())
 }
 
-pub fn sendtov4(socket: &UdpSocket,
-                msgs: &[Message],
-                num: &mut usize,
-                a: [u8;4], port: u16) -> Result<()> {
+pub fn sendtov4(
+    socket: &UdpSocket,
+    msgs: &[Message],
+    num: &mut usize,
+    a: [u8; 4],
+    port: u16,
+) -> Result<()> {
     let sz = size_of::<Message>();
     let ipv4 = Ipv4Addr::new(a[0], a[1], a[2], a[3]);
     let addr = SocketAddr::new(IpAddr::V4(ipv4), port);
@@ -76,49 +79,47 @@ pub fn sendtov4(socket: &UdpSocket,
             *num = *num + sent_size / sz;
         }
     }
-    return Ok(());
+    Ok(())
 }
-
 
 #[cfg(test)]
 use mio;
 
 #[test]
 fn server_test() {
-	const READABLE: mio::Token = mio::Token(0);
-	const WRITABLE: mio::Token = mio::Token(1);
-	let poll = mio::Poll::new().unwrap();
+    const READABLE: mio::Token = mio::Token(0);
+    const WRITABLE: mio::Token = mio::Token(1);
+    let poll = mio::Poll::new().unwrap();
     let sz = size_of::<Message>();
     let srv = server().expect("couldn't create a server");
     let cli = client("127.0.0.1:12345").expect("client");
-    let max = MAX_PACKET/sz;
+    let max = MAX_PACKET / sz;
     let mut m = [Message::default(); 26];
     let mut num = 0;
-	poll.register(&cli, WRITABLE, mio::Ready::writable(),
-              mio::PollOpt::edge()).unwrap();
-	let mut events = mio::Events::with_capacity(8);
+    poll.register(&cli, WRITABLE, mio::Ready::writable(), mio::PollOpt::edge())
+        .unwrap();
+    let mut events = mio::Events::with_capacity(8);
     poll.poll(&mut events, None).unwrap();
     for event in events.iter() {
         match event.token() {
             WRITABLE => {
                 write(&cli, &m[0..max], &mut num).expect("write");
             }
-            _ => ()
+            _ => (),
         }
     }
     assert!(num == max);
     num = 0;
-	poll.register(&srv, READABLE, mio::Ready::readable(),
-              mio::PollOpt::edge()).unwrap();
+    poll.register(&srv, READABLE, mio::Ready::readable(), mio::PollOpt::edge())
+        .unwrap();
     poll.poll(&mut events, None).unwrap();
     for event in events.iter() {
         match event.token() {
             READABLE => {
                 read(&srv, &mut m, &mut num).expect("read");
             }
-            _ => ()
+            _ => (),
         }
     }
     assert!(num == max);
 }
-

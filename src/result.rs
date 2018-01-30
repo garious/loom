@@ -4,7 +4,6 @@ use core;
 use crypto;
 use crypto::symmetriccipher::SymmetricCipherError;
 
-
 #[derive(Debug)]
 pub enum Error {
     IO(std::io::Error),
@@ -17,10 +16,10 @@ pub enum Error {
 
 impl PartialEq for Error {
     fn eq(&self, other: &Self) -> bool {
-        match(self, other) {
+        match (self, other) {
             (&Error::NoSpace, &Error::NoSpace) => true,
             (&Error::ToLarge, &Error::ToLarge) => true,
-            _ => false
+            _ => false,
         }
     }
     fn ne(&self, other: &Self) -> bool {
@@ -32,22 +31,22 @@ pub type Result<T> = core::result::Result<T, Error>;
 
 impl core::convert::From<std::io::Error> for Error {
     fn from(e: std::io::Error) -> Error {
-        return Error::IO(e);
+        Error::IO(e)
     }
 }
 impl core::convert::From<serde_json::Error> for Error {
     fn from(e: serde_json::Error) -> Error {
-        return Error::JSON(e);
+        Error::JSON(e)
     }
 }
 impl core::convert::From<SymmetricCipherError> for Error {
     fn from(e: SymmetricCipherError) -> Error {
-        return Error::AES(e);
+        Error::AES(e)
     }
 }
 impl core::convert::From<std::net::AddrParseError> for Error {
     fn from(e: std::net::AddrParseError) -> Error {
-        return Error::AddrParse(e);
+        Error::AddrParse(e)
     }
 }
 //pub fn retry<F, T>(r: &mut Result<T>,  op: F) -> ()

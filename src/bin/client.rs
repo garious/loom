@@ -1,6 +1,6 @@
+extern crate getopts;
 extern crate loom;
 extern crate rpassword;
-extern crate getopts;
 
 use getopts::Options;
 use std::env;
@@ -8,30 +8,28 @@ use std::string::String;
 
 use loom::wallet::{EncryptedWallet, Wallet};
 
-fn print_usage(program: &str, opts: Options) {                                
+fn print_usage(program: &str, opts: Options) {
     let brief = format!("Usage: {} FILE [options]", program);
-    print!("{}", opts.usage(&brief));                               
-} 
+    print!("{}", opts.usage(&brief));
+}
 
 fn new_key_pair() {
     let path = "loom.wallet";
     let prompt = "./loom.wallet password: ";
     let pass = rpassword::prompt_password_stdout(prompt).unwrap();
-    let ew = EncryptedWallet::from_file(path)
-            .unwrap_or(EncryptedWallet::new());
+    let ew = EncryptedWallet::from_file(path).unwrap_or(EncryptedWallet::new());
     let mut w = Wallet::decrypt(ew, pass.as_bytes()).expect("decrypt");
     let kp = Wallet::new_keypair();
     w.add_key_pair(kp);
-    w.encrypt(pass.as_bytes()).expect("encrypt")
-        .to_file(path).expect("write");
+    w.encrypt(pass.as_bytes())
+        .expect("encrypt")
+        .to_file(path)
+        .expect("write");
 }
 
-fn transfer(_from: String, _to: String, _amnt: u64) {
-}
+fn transfer(_from: String, _to: String, _amnt: u64) {}
 
-fn balance(_addr: String) {
-}
-
+fn balance(_addr: String) {}
 
 pub fn main() {
     let args: Vec<String> = env::args().collect();
@@ -47,8 +45,8 @@ pub fn main() {
     opts.optopt("f", "", "source address", "ADDRESS");
     opts.optopt("a", "", "amount", "AMOUNT");
     let matches = match opts.parse(&args[1..]) {
-        Ok(m) => { m }
-        Err(f) => { panic!(f.to_string()) }
+        Ok(m) => m,
+        Err(f) => panic!(f.to_string()),
     };
     if matches.opt_present("h") {
         print_usage(&program, opts);

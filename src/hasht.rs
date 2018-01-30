@@ -1,4 +1,4 @@
-use result::{Result, Error};
+use result::{Error, Result};
 use core::marker::PhantomData;
 
 pub trait Key: Eq {
@@ -10,28 +10,29 @@ pub trait Val<T: Key>: Sized + Clone {
     fn key(&self) -> &T;
 }
 
-pub struct HashT<K: Key, V: Val<K> > {
+pub struct HashT<K: Key, V: Val<K>> {
     _key: PhantomData<K>,
     _val: PhantomData<V>,
 }
 
-impl<K, V> HashT<K, V> 
-    where K: Key,
-          V: Val<K>
+impl<K, V> HashT<K, V>
+where
+    K: Key,
+    V: Val<K>,
 {
     pub fn find(tbl: &[V], key: &K) -> Result<usize> {
         let num_elems = tbl.len();
         let st = key.start();
-        for i in 0 .. num_elems {
+        for i in 0..num_elems {
             let pos = st.wrapping_add(i) % num_elems;
             unsafe {
                 let k = tbl.get_unchecked(pos).key();
-                if k.unused() || k == key { 
+                if k.unused() || k == key {
                     return Ok(pos);
                 }
             }
         }
-        return Err(Error::NoSpace)
+        Err(Error::NoSpace)
     }
     pub fn migrate(src: &[V], dst: &mut [V]) -> Result<()> {
         for i in src.iter() {
@@ -43,15 +44,14 @@ impl<K, V> HashT<K, V>
                 *dst.get_unchecked_mut(p) = (*i).clone();
             }
         }
-        return Ok(());
+        Ok(())
     }
-
 }
 
 #[cfg(test)]
 mod test {
     use hasht;
-    use result::{Error};
+    use result::Error;
     impl hasht::Key for usize {
         fn start(&self) -> usize {
             *self
@@ -106,9 +106,9 @@ mod test {
         assert_eq!(UsizeT::find(&v, &1usize).unwrap(), a);
         assert_eq!(UsizeT::find(&v, &2usize).unwrap(), b);
         assert_eq!(UsizeT::find(&v, &3usize).unwrap_err(), Error::NoSpace);
-        assert_eq!(UsizeT::find(&v, &usize::max_value()).unwrap_err(),
-                   Error::NoSpace);
+        assert_eq!(
+            UsizeT::find(&v, &usize::max_value()).unwrap_err(),
+            Error::NoSpace
+        );
     }
 }
-
-

@@ -13,9 +13,9 @@ pub fn main() {
     loop {
         let mut num = 0;
         let start = num;
-        net::read(&srv, &mut m[start .. ], &mut num).expect("read");
+        net::read(&srv, &mut m[start..], &mut num).expect("read");
         let end = num;
-        s.execute(&mut m[start .. end]).expect("state");
-        g.execute(&mut m[start .. end]).expect("gossip");
+        s.execute(&mut m[start..end]).expect("state");
+        g.execute(&mut m[start..end]).expect("gossip");
     }
 }
