@@ -33,10 +33,18 @@ pub struct Subscriber {
 
 #[derive(Copy, Clone)]
 #[repr(C)]
+pub struct GetLedger {
+    pub start: u64,
+    pub num: u64,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
 pub union MessageData {
     pub tx: Transaction,
     pub poh: POH,
     pub sub: Subscriber,
+    pub get: GetLedger,
 }
 
 impl Default for MessageData {
@@ -54,6 +62,7 @@ pub enum Kind {
     Transaction,
     Signature,
     Subscribe,
+    GetLedger,
 }
 
 impl Default for Kind {
