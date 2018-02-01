@@ -38,7 +38,7 @@ pub struct GetLedger {
     pub num: u64,
 }
 
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 #[repr(C)]
 pub union MessageData {
     pub tx: Transaction,
