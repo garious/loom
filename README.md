@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/loomprotocol/loom.svg?branch=master)](https://travis-ci.org/loomprotocol/loom)
 
-Loom &copy;
+Loom &trade;
 =====
 Loom is a new architecture for blockchain based on the idea of encoding passage of time as data. It can achieve up to **710,000 transactions per second on a 1 gigabit network without data partitioning**. Loom can eventually recover from a fault of any size, and it provides a way to cheaply verify a distributed ledger.
 
