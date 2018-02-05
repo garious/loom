@@ -127,7 +127,7 @@ mod bench {
     use hasht::Key;
 
     fn init_msgs(msgs: &mut [data::Message]) {
-        for (i,m) in msgs.iter_mut().enumerate() {
+        for (i, m) in msgs.iter_mut().enumerate() {
             m.pld.kind = data::Kind::Transaction;
             unsafe {
                 m.pld.data.tx.to = [255u8; 32];
@@ -144,15 +144,15 @@ mod bench {
     #[bench]
     fn state_bench(b: &mut Bencher) {
         const NUM: usize = 128usize;
-        let mut s: State = State::new(NUM*2);
+        let mut s: State = State::new(NUM * 2);
         let mut msgs = [data::Message::default(); NUM];
         init_msgs(&mut msgs);
         let fp = data::AccountT::find(&s.accounts, &[255u8; 32]).expect("f");
-        s.accounts[fp].from = [255u8;32];
+        s.accounts[fp].from = [255u8; 32];
         b.iter(|| {
             s.accounts[fp].balance = NUM as u64 * 2u64;
             s.execute(&mut msgs).expect("execute");
-            assert_eq!(s.accounts[fp].balance,0);
+            assert_eq!(s.accounts[fp].balance, 0);
         })
     }
 }
