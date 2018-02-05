@@ -9,6 +9,9 @@ documentation = "tbd"
 keywords = ["blockchain"]
 readme = "README.md"
 
+[features]
+unstable = []
+
 [[bin]]
 name = "spool"
 path = "src/bin/spool.rs"

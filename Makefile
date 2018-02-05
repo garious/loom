@@ -2,4 +2,4 @@ test:
 	cargo test
 
 bench:
-	cargo bench
+	cargo +nightly bench --features="unstable"
