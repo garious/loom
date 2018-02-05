@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "unstable", feature(test))]
+
 pub mod net;
 pub mod data;
 pub mod state;
@@ -16,6 +18,3 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
-
-//#![cfg(test)]
-//extern crate bencher;
