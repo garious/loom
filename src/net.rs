@@ -46,9 +46,11 @@ pub fn read_from(
         unsafe {
             let p = &mut messages[total] as *mut Message;
             if (max - total) * sz < MAX_PACKET {
+                println!("HERE not enough space");
                 return Ok(ix);
             }
             let buf = transmute(from_raw_parts(p as *mut u8, MAX_PACKET));
+            println!("HERE calling read");
             match socket.recv_from(buf) {
                 Err(e) => if Some(35) == e.raw_os_error() {
                     return Ok(ix);
@@ -56,10 +58,10 @@ pub fn read_from(
                 Ok((nrecv, from)) => {
                     total = total + nrecv / sz;
                     *mdata.get_unchecked_mut(ix) = (nrecv / sz, from);
+                    ix = ix + 1;
                 }
             }
         }
-        ix = ix + 1;
     }
     Ok(ix)
 }
@@ -89,6 +91,7 @@ pub fn write(socket: &UdpSocket, messages: &[Message], num: &mut usize) -> Resul
             let p = &messages[*num] as *const Message;
             let bz = min(MAX_PACKET / sz, max - *num) * sz;
             let buf = transmute(from_raw_parts(p as *const u8, bz));
+            println!("HERE net sending {:?} bytes", bz);
             let sent_size = socket.send(buf)?;
             *num = *num + sent_size / sz;
         }

@@ -86,11 +86,11 @@ impl Reader {
                         let v = Arc::get_mut(&mut m).expect("only ref");
                         match net::read_from(&srv, &mut v.msgs, &mut v.data) {
                             Err(e) => {
-                                println!("read failed error {:?}", e);
+                                println!("HERE read failed error {:?}", e);
                                 continue;
                             }
                             Ok(0) => {
-                                println!("read returned 0");
+                                println!("HERE read returned 0");
                                 continue;
                             }
                             Ok(num) => {
@@ -134,6 +134,7 @@ use std::thread::sleep;
 
 #[test]
 fn reader_test() {
+    const WRITABLE: mio::Token = mio::Token(1);
     let reader = Arc::new(Reader::new(12001));
     let c_reader = reader.clone();
     let exit = Arc::new(Mutex::new(false));
@@ -143,17 +144,43 @@ fn reader_test() {
     });
     let cli = net::client("127.0.0.1:12001").expect("client");
     let m = [data::Message::default(); 64];
-    let mut num = 0;
-    for n in 0 .. 64 { 
-        match net::write(&cli, &m[n..n+1], &mut num) {
-            Err(_) => break,
-            _ => continue
+    let poll = mio::Poll::new().unwrap();
+    poll.register(&cli, WRITABLE, mio::Ready::writable(), mio::PollOpt::edge())?;
+    let mut events = mio::Events::with_capacity(8);
+    for n in 0 .. 63 { 
+        println!("HERE writing {:?}", n);
+        assert_eq!(m[n..n + 1].len(), 1);
+        let mut num = 0;
+        poll.poll(&mut events, None).unwrap();
+        for event in events.iter() {
+            match event.token() {
+                WRITABLE => {
+                    match net::write(&cli, &m[n.. n + 1], &mut num) {
+                        Err(e) => {
+                            println!("HERE error writing {:?}", e);
+                            break;
+                        }
+                        Ok(()) => ()
+                    }
+                }
+                _ => (),
+            }
         }
+
     }
-    sleep(Duration::new(2, 0));
+    let mut rvs = 0usize; 
+    for _n in 0 .. 63 { 
+        match reader.next() {
+            Err(_) => (),
+            Ok(msgs) => {
+                rvs += msgs.data.len();
+            }
+        }
+        sleep(Duration::new(1, 0));
+    }
+    println!("HERE exiting");
     *exit.lock().expect("lock") = true;
     let o = t.join().expect("thread join");
     o.expect("thread output");
-    let r = reader.next().expect("messages");
-    assert_eq!(r.msgs.len(), 64);
+    assert_eq!(rvs, 64);
 }
