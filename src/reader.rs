@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 use std::collections::VecDeque;
 use std::net::{SocketAddr, Ipv4Addr, IpAddr};
 use result::{Result, from_option};
+use std::time::Duration;
 use mio;
 use data;
 use net;
@@ -10,6 +11,7 @@ pub struct Messages {
     msgs: Vec<data::Message>,
     data: Vec<(usize,SocketAddr)>,
 }
+
 impl Messages {
     fn new() -> Messages {
         let mut m = Vec::new();
@@ -36,13 +38,14 @@ struct Data {
 pub struct Reader {
     lock: Mutex<Data>,
     port: u16,
+    done: bool,
 }
 impl Reader {
     pub fn new(port: u16) -> Reader {
         let d = Data { gc: Vec::new(),
                        pending: VecDeque::new() };
 
-        return Reader{lock: Mutex::new(d), port: port};
+        return Reader{lock: Mutex::new(d), port: port, done: false};
     }
     pub fn next(&self) -> Result<SharedMessages> {
         let mut d = self.lock.lock().expect("lock");
@@ -63,18 +66,27 @@ impl Reader {
                        mio::PollOpt::edge())?;
         let mut events = mio::Events::with_capacity(8);
         
-        loop {
-            poll.poll(&mut events, None)?;
-            let mut m =  self.allocate();
-            let c = Arc::clone(&m);
-            let v = from_option(Arc::get_mut(&mut m))?;
-            let num = net::read_from(&srv, &mut v.msgs, &mut v.data)?;
-            let total = v.data.iter_mut().map(|v| v.0).sum();
-            v.msgs.resize(total, data::Message::default());
-            v.data.resize(num, Messages::def_data());
-            self.enqueue(c);
-            self.notify();
+        while self.done == false {
+            let timeout = Duration::new(1, 0);
+            match poll.poll(&mut events, Some(timeout)) {
+                Err(_) => continue,
+                Ok(_) => {
+                    let mut m =  self.allocate();
+                    let c = Arc::clone(&m);
+                    let v = Arc::get_mut(&mut m).expect("only ref");
+                    let num = net::read_from(&srv, &mut v.msgs, &mut v.data)?;
+                    let total = v.data.iter_mut().map(|v| v.0).sum();
+                    v.msgs.resize(total, data::Message::default());
+                    v.data.resize(num, Messages::def_data());
+                    self.enqueue(c);
+                    self.notify();
+                }
+            }
         }
+        return Ok(());
+    }
+    pub fn exit(&mut self) {
+        self.done = true;
     }
     fn notify(&self) {
         //TODO(anatoly), hard code other threads to notify
@@ -90,4 +102,28 @@ impl Reader {
         let mut s = self.lock.lock().expect("lock");
         s.pending.push_back(m);
     }
+}
+
+#[cfg(test)]
+use std::thread::spawn;
+
+#[test]
+fn reader_test() {
+    let mut reader = Reader::new(12345);
+    let t = spawn(move || {
+        reader.run();
+    });
+    let cli = net::client("127.0.0.1:12345").expect("client");
+    let m = [data::Message::default(); 64];
+    let mut num = 0;
+    for n in 0 .. 64 { 
+        match net::write(&cli, &m[n..n+1], &mut num) {
+            Err(_) => break,
+            _ => continue
+        }
+    }
+    let r = reader.next().expect("messages");
+    reader.exit();
+    t.join();
+    assert_eq!(r.msgs.len(), 64);
 }
