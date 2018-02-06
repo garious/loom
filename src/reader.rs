@@ -89,8 +89,12 @@ impl Reader {
                                 println!("read failed error {:?}", e);
                                 continue;
                             }
+                            Ok(0) => {
+                                println!("read returned 0");
+                                continue;
+                            }
                             Ok(num) => {
-                                println!("HERE read");
+                                println!("HERE read {:?}", num);
                                 let total = v.data.iter_mut()
                                                   .map(|v| v.0)
                                                   .sum();
@@ -100,6 +104,7 @@ impl Reader {
                         }
                     }
                     let c = Arc::clone(&m);
+                    println!("HERE enqueue");
                     self.enqueue(c);
                     self.notify();
                 }
