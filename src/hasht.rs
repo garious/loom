@@ -35,7 +35,7 @@ where
         Err(Error::NoSpace)
     }
     pub fn migrate(src: &[V], dst: &mut [V]) -> Result<()> {
-        for i in src.iter() {
+        for i in src {
             if i.key().unused() {
                 continue;
             }
@@ -69,25 +69,19 @@ mod test {
     type UsizeT = hasht::HashT<usize, usize>;
     #[test]
     fn hash_test() {
-        let mut v = Vec::new();
-        v.clear();
-        v.resize(0, 0usize);
+        let v = vec![0usize; 0];
         let r = UsizeT::find(&v, &1usize);
         assert_eq!(r.unwrap_err(), Error::NoSpace);
     }
     #[test]
     fn hash_test2() {
-        let mut v = Vec::new();
-        v.clear();
-        v.resize(1, 0usize);
+        let v = vec![0usize; 1];
         let r = UsizeT::find(&v, &1usize);
         assert_eq!(r.unwrap(), 0);
     }
     #[test]
     fn hash_test3() {
-        let mut v = Vec::new();
-        v.clear();
-        v.resize(1, 0usize);
+        let mut v = vec![0usize; 1];
         let a = UsizeT::find(&v, &1usize).expect("find 1");
         v[a] = 1;
         let b = UsizeT::find(&v, &2usize);
@@ -95,9 +89,7 @@ mod test {
     }
     #[test]
     fn hash_test4() {
-        let mut v = Vec::new();
-        v.clear();
-        v.resize(2, 0usize);
+        let mut v = vec![0usize; 2];
         let a = UsizeT::find(&v, &1usize).expect("find 1");
         v[a] = 1;
         let b = UsizeT::find(&v, &2usize).expect("find 2");

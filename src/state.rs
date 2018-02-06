@@ -10,18 +10,14 @@ pub struct State {
 
 impl State {
     pub fn new(size: usize) -> State {
-        let mut v = Vec::new();
-        v.clear();
-        v.resize(size, data::Account::default());
         State {
-            accounts: v,
+            accounts: vec![data::Account::default(); size],
             used: 0,
         }
     }
     fn double(&mut self) -> Result<()> {
-        let mut v = Vec::new();
         let size = self.accounts.len() * 2;
-        v.resize(size, data::Account::default());
+        let mut v = vec![data::Account::default(); size];
         data::AccountT::migrate(&self.accounts, &mut v)?;
         self.accounts = v;
         Ok(())
@@ -58,7 +54,7 @@ impl State {
         if from.from != m.pld.data.tx.from {
             return Ok(());
         }
-        if to.from.unused() != true && to.from != m.pld.data.tx.to {
+        if !to.from.unused() && to.from != m.pld.data.tx.to {
             return Ok(());
         }
         Self::charge(&mut from, m);
@@ -99,8 +95,8 @@ impl State {
         to.balance = to.balance + m.pld.data.tx.amount;
         if to.from.unused() {
             to.from = m.pld.data.tx.to;
-            assert!(m.pld.data.tx.to.unused() == false);
-            assert!(to.from.unused() == false);
+            assert!(!m.pld.data.tx.to.unused());
+            assert!(!to.from.unused());
         }
         m.pld.state = data::State::Deposited;
     }
@@ -135,8 +131,8 @@ mod bench {
                 m.pld.data.tx.from = [255u8; 32];
                 m.pld.data.tx.fee = 1;
                 m.pld.data.tx.amount = 1;
-                assert!(m.pld.data.tx.to.unused() == false);
-                assert!(m.pld.data.tx.from.unused() == false);
+                assert!(!m.pld.data.tx.to.unused());
+                assert!(!m.pld.data.tx.from.unused());
             }
         }
     }

@@ -27,19 +27,15 @@ pub struct Gossip {
 
 impl Gossip {
     pub fn new(size: usize) -> Gossip {
-        let mut v = Vec::new();
-        v.clear();
-        v.resize(size, Subscriber::default());
         Gossip {
-            subs: v,
+            subs: vec![Subscriber::default(); size],
             now: 0,
             used: 0,
         }
     }
     fn double(&mut self) -> Result<()> {
-        let mut v = Vec::new();
         let size = self.subs.len() * 2;
-        v.resize(size, Subscriber::default());
+        let mut v = vec![Subscriber::default(); size];
         SubT::migrate(&self.subs, &mut v)?;
         self.subs = v;
         Ok(())
@@ -67,7 +63,7 @@ impl Gossip {
         Ok(())
     }
     pub fn execute(&mut self, msgs: &mut [data::Message]) -> Result<()> {
-        for m in msgs.iter() {
+        for m in msgs {
             let mut new = 0;
             unsafe {
                 self.exec(&m, &mut new)?;

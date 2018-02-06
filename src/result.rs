@@ -22,9 +22,6 @@ impl PartialEq for Error {
             _ => false,
         }
     }
-    fn ne(&self, other: &Self) -> bool {
-        (*self == *other) == false
-    }
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
