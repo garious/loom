@@ -72,7 +72,7 @@ impl Reader {
                     return Ok(());
                 }
             }
-            let timeout = Duration::new(1, 0);
+            let timeout = Duration::new(2, 0);
             println!("HERE polling");
             match poll.poll(&mut events, Some(timeout)) {
                 Err(_) => {
@@ -82,31 +82,34 @@ impl Reader {
                 Ok(_) => {
                     println!("HERE ok");
                     let mut m =  self.allocate();
+                    let mut total = 0;
                     {
                         let v = Arc::get_mut(&mut m).expect("only ref");
                         match net::read_from(&srv, &mut v.msgs, &mut v.data) {
                             Err(e) => {
                                 println!("HERE read failed error {:?}", e);
-                                continue;
                             }
                             Ok(0) => {
                                 println!("HERE read returned 0");
-                                continue;
                             }
                             Ok(num) => {
                                 println!("HERE read {:?}", num);
-                                let total = v.data.iter_mut()
-                                                  .map(|v| v.0)
-                                                  .sum();
+                                total = v.data.iter_mut()
+                                              .map(|v| v.0)
+                                              .sum();
                                 v.msgs.resize(total, data::Message::default());
                                 v.data.resize(num, Messages::def_data());
                             }
                         }
                     }
                     let c = Arc::clone(&m);
-                    println!("HERE enqueue");
-                    self.enqueue(c);
-                    self.notify();
+                    if total > 0 {
+                        println!("HERE enqueue");
+                        self.enqueue(c);
+                        self.notify();
+                    } else {
+                        self.recycle(c);
+                    }
                 }
             }
         }
@@ -142,11 +145,13 @@ fn reader_test() {
     let t = spawn(move || {
         return c_reader.run(c_exit);
     });
-    let cli = net::client("127.0.0.1:12001").expect("client");
+    let cli = net::socket().expect("client");
     let m = [data::Message::default(); 64];
     let poll = mio::Poll::new().unwrap();
-    poll.register(&cli, WRITABLE, mio::Ready::writable(), mio::PollOpt::edge())?;
+    poll.register(&cli, WRITABLE, mio::Ready::writable(),
+                  mio::PollOpt::edge()).expect("poll");
     let mut events = mio::Events::with_capacity(8);
+    let toaddr = "127.0.0.1:12001".parse().expect("parse");
     for n in 0 .. 63 { 
         println!("HERE writing {:?}", n);
         assert_eq!(m[n..n + 1].len(), 1);
@@ -155,12 +160,14 @@ fn reader_test() {
         for event in events.iter() {
             match event.token() {
                 WRITABLE => {
-                    match net::write(&cli, &m[n.. n + 1], &mut num) {
+                    match net::send_to(&cli, &m[n.. n + 1], &mut num, toaddr) {
                         Err(e) => {
                             println!("HERE error writing {:?}", e);
                             break;
                         }
-                        Ok(()) => ()
+                        Ok(()) => {
+                            println!("HERE writing ok");
+                        }
                     }
                 }
                 _ => (),
@@ -168,6 +175,7 @@ fn reader_test() {
         }
 
     }
+    assert!(false);
     let mut rvs = 0usize; 
     for _n in 0 .. 63 { 
         match reader.next() {

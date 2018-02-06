@@ -33,6 +33,13 @@ pub fn client(uri: &str) -> Result<UdpSocket> {
     Ok(ret)
 }
 
+pub fn socket() -> Result<UdpSocket> {
+    let addr = "0.0.0.0:0".parse()?;
+    let ret = UdpSocket::bind(&addr)?;
+    Ok(ret)
+}
+
+
 pub fn read_from(
     socket: &UdpSocket,
     messages: &mut [Message],
@@ -99,17 +106,13 @@ pub fn write(socket: &UdpSocket, messages: &[Message], num: &mut usize) -> Resul
     Ok(())
 }
 
-pub fn sendtov4(
+pub fn send_to(
     socket: &UdpSocket,
     msgs: &[Message],
     num: &mut usize,
-    a: [u8; 4],
-    port: u16,
+    addr: SocketAddr,
 ) -> Result<()> {
     let sz = size_of::<Message>();
-    let ipv4 = Ipv4Addr::new(a[0], a[1], a[2], a[3]);
-    let addr = SocketAddr::new(IpAddr::V4(ipv4), port);
-
     let max = msgs.len();
     while *num < max {
         unsafe {
@@ -121,6 +124,19 @@ pub fn sendtov4(
         }
     }
     Ok(())
+}
+
+
+pub fn sendtov4(
+    socket: &UdpSocket,
+    msgs: &[Message],
+    num: &mut usize,
+    a: [u8; 4],
+    port: u16,
+) -> Result<()> {
+    let ipv4 = Ipv4Addr::new(a[0], a[1], a[2], a[3]);
+    let addr = SocketAddr::new(IpAddr::V4(ipv4), port);
+    send_to(socket, msgs, num, addr)
 }
 
 #[cfg(test)]
