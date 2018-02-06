@@ -50,7 +50,7 @@ pub fn read_from(
             }
             let buf = transmute(from_raw_parts(p as *mut u8, MAX_PACKET));
             match socket.recv_from(buf) {
-                Err(IO(e)) => if Some(35) == e.raw_os_error() {
+                Err(e) => if Some(35) == e.raw_os_error() {
                     return Ok(ix);
                 }
                 Ok((nrecv, from)) => {
