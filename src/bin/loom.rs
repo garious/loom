@@ -8,8 +8,7 @@ pub fn main() {
     let srv = net::server().expect("server");
     let mut s = state::State::new(1024);
     let mut g = gossip::Gossip::new(1024);
-    let mut m = Vec::new();
-    m.resize(1024, data::Message::default());
+    let mut m = vec![data::Message::default(); 1024];
     loop {
         let mut num = 0;
         let start = num;
@@ -17,7 +16,7 @@ pub fn main() {
         let end = num;
         s.execute(&mut m[start..end]).expect("state");
         g.execute(&mut m[start..end]).expect("gossip");
-        for s in g.subs.iter() {
+        for s in &g.subs {
             net::sendtov4(&srv, &m[start..end], &mut num, s.addr, s.port).expect("send");
         }
     }

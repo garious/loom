@@ -18,8 +18,7 @@ const LEDGER: &str = "./loom.ledger";
 impl Ledger {
     pub fn new() -> Result<Ledger> {
         let file = File::open(LEDGER)?;
-        let l = Ledger { file: file };
-        return Ok(l);
+        Ok(Ledger { file })
     }
     fn get_ledger(&self, sock: &UdpSocket, get: &data::GetLedger) -> Result<()> {
         let mut mem = Vec::new();
@@ -30,23 +29,20 @@ impl Ledger {
         let bz = mem.len() * sz;
         let buf = unsafe { transmute(from_raw_parts(p as *const u8, bz)) };
         sock.send(buf)?;
-        return Ok(());
+        Ok(())
     }
     fn exec(&self, sock: &UdpSocket, m: &data::Message) -> Result<()> {
-        match m.pld.kind {
-            data::Kind::GetLedger => {
-                let get = unsafe { &m.pld.data.get };
-                self.get_ledger(sock, get)?;
-            }
-            _ => return Ok(()),
-        };
-        return Ok(());
+        if let data::Kind::GetLedger = m.pld.kind {
+            let get = unsafe { &m.pld.data.get };
+            self.get_ledger(sock, get)?;
+        }
+        Ok(())
     }
     pub fn execute(&self, sock: &UdpSocket, msgs: &mut [data::Message]) -> Result<()> {
-        for m in msgs.iter_mut() {
+        for m in msgs {
             self.exec(sock, &m)?;
         }
-        return Ok(());
+        Ok(())
     }
     pub fn append(&mut self, msgs: &[data::Message]) -> Result<()> {
         //TODO(aeyakovenko): the fastest way to do this:
@@ -57,7 +53,7 @@ impl Ledger {
         let bz = msgs.len() * sz;
         let buf = unsafe { transmute(from_raw_parts(p as *const u8, bz)) };
         self.file.write_all(buf)?;
-        return Ok(());
+        Ok(())
     }
     pub fn load(msgs: &mut [data::Message], start: u64) -> Result<()> {
         //TODO(aeyakovenko): the fastest way to do this:
@@ -70,6 +66,6 @@ impl Ledger {
         let bz = msgs.len() * sz;
         let buf = unsafe { transmute(from_raw_parts(p as *mut u8, bz)) };
         file.read(buf)?;
-        return Ok(());
+        Ok(())
     }
 }

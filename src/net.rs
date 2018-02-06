@@ -100,26 +100,20 @@ fn server_test() {
         .unwrap();
     let mut events = mio::Events::with_capacity(8);
     poll.poll(&mut events, None).unwrap();
-    for event in events.iter() {
-        match event.token() {
-            WRITABLE => {
-                write(&cli, &m[0..max], &mut num).expect("write");
-            }
-            _ => (),
+    for event in &events {
+        if let WRITABLE = event.token() {
+            write(&cli, &m[0..max], &mut num).expect("write");
         }
     }
-    assert!(num == max);
+    assert_eq!(num, max);
     num = 0;
     poll.register(&srv, READABLE, mio::Ready::readable(), mio::PollOpt::edge())
         .unwrap();
     poll.poll(&mut events, None).unwrap();
-    for event in events.iter() {
-        match event.token() {
-            READABLE => {
-                read(&srv, &mut m, &mut num).expect("read");
-            }
-            _ => (),
+    for event in &events {
+        if let READABLE = event.token() {
+            read(&srv, &mut m, &mut num).expect("read");
         }
     }
-    assert!(num == max);
+    assert_eq!(num, max);
 }

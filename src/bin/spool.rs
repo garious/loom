@@ -8,8 +8,7 @@ pub fn main() {
     let srv = net::server().expect("server");
     let mut s = state::State::new(1024);
     let mut g = gossip::Gossip::new(1024);
-    let mut m = Vec::new();
-    m.resize(1024, data::Message::default());
+    let mut m = vec![data::Message::default(); 1024];
     loop {
         let mut num = 0;
         let start = num;
