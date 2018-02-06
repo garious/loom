@@ -182,6 +182,7 @@ fn reader_test() {
             Err(_) => (),
             Ok(msgs) => {
                 rvs += msgs.data.len();
+                println!("HERE got msgs {:?}", rvs);
             }
         }
         sleep(Duration::new(1, 0));
