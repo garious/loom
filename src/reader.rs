@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use std::collections::VecDeque;
-use std::net::{SocketAddr, Ipv4Addr, IpAddr};
-use result::{Result, from_option};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use result::{from_option, Result};
 use std::time::Duration;
 use mio;
 use data;
@@ -9,7 +9,7 @@ use net;
 
 pub struct Messages {
     msgs: Vec<data::Message>,
-    data: Vec<(usize,SocketAddr)>,
+    data: Vec<(usize, SocketAddr)>,
 }
 
 impl Messages {
@@ -18,15 +18,14 @@ impl Messages {
         m.resize(1024, data::Message::default());
         let mut d = Vec::new();
         d.resize(1024, Self::def_data());
-        Messages{msgs:m, data:d}
+        Messages { msgs: m, data: d }
     }
     fn def_data() -> (usize, SocketAddr) {
-         let ipv4 = Ipv4Addr::new(0, 0, 0, 0);
-         let addr = SocketAddr::new(IpAddr::V4(ipv4), 0);
-         let df = (0, addr);
-         return df;
-     }
-
+        let ipv4 = Ipv4Addr::new(0, 0, 0, 0);
+        let addr = SocketAddr::new(IpAddr::V4(ipv4), 0);
+        let df = (0, addr);
+        return df;
+    }
 }
 
 pub type SharedMessages = Arc<Messages>;
@@ -41,10 +40,15 @@ pub struct Reader {
 }
 impl Reader {
     pub fn new(port: u16) -> Reader {
-        let d = Data { gc: Vec::new(),
-                       pending: VecDeque::new() };
+        let d = Data {
+            gc: Vec::new(),
+            pending: VecDeque::new(),
+        };
 
-        return Reader{lock: Mutex::new(d), port: port};
+        return Reader {
+            lock: Mutex::new(d),
+            port: port,
+        };
     }
     pub fn next(&self) -> Result<SharedMessages> {
         let mut d = self.lock.lock().expect("lock");
@@ -61,16 +65,15 @@ impl Reader {
         const READABLE: mio::Token = mio::Token(0);
         let poll = mio::Poll::new()?;
         let srv = mio::net::UdpSocket::bind(&addr)?;
-        poll.register(&srv, READABLE, mio::Ready::readable(),
-                       mio::PollOpt::edge())?;
+        poll.register(&srv, READABLE, mio::Ready::readable(), mio::PollOpt::edge())?;
         let mut events = mio::Events::with_capacity(8);
-        
+
         loop {
             let timeout = Duration::new(1, 0);
             match poll.poll(&mut events, Some(timeout)) {
                 Err(_) => continue,
                 Ok(_) => {
-                    let mut m =  self.allocate();
+                    let mut m = self.allocate();
                     let c = Arc::clone(&m);
                     let v = Arc::get_mut(&mut m).expect("only ref");
                     let num = net::read_from(&srv, &mut v.msgs, &mut v.data)?;
@@ -95,9 +98,9 @@ impl Reader {
     fn allocate(&self) -> SharedMessages {
         let mut s = self.lock.lock().expect("lock");
         return match s.gc.pop() {
-                Some(v) => v,
-                _ => Arc::new(Messages::new())
-        }
+            Some(v) => v,
+            _ => Arc::new(Messages::new()),
+        };
     }
     fn enqueue(&self, m: SharedMessages) {
         let mut s = self.lock.lock().expect("lock");
@@ -120,10 +123,10 @@ fn reader_test() {
     let cli = net::client("127.0.0.1:12345").expect("client");
     let m = [data::Message::default(); 64];
     let mut num = 0;
-    for n in 0 .. 64 { 
-        match net::write(&cli, &m[n..n+1], &mut num) {
+    for n in 0..64 {
+        match net::write(&cli, &m[n..n + 1], &mut num) {
             Err(_) => break,
-            _ => continue
+            _ => continue,
         }
     }
     let r = reader.next().expect("messages");

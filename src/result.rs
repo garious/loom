@@ -30,7 +30,7 @@ pub type Result<T> = core::result::Result<T, Error>;
 pub fn from_option<T>(r: Option<T>) -> Result<T> {
     match r {
         Some(v) => Ok(v),
-        None => Err(Error::NoneError)
+        None => Err(Error::NoneError),
     }
 }
 

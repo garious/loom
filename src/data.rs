@@ -106,8 +106,8 @@ pub struct Payload {
     pub data: MessageData,
     pub version: u32,
     pub kind: Kind,
-    pub state: State,   //zero when signed
-    pub unused: u16,    //zero when signed
+    pub state: State, //zero when signed
+    pub unused: u16,  //zero when signed
 }
 
 #[derive(Copy, Clone)]

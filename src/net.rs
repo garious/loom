@@ -33,7 +33,11 @@ pub fn client(uri: &str) -> Result<UdpSocket> {
     Ok(ret)
 }
 
-pub fn read_from(socket: &UdpSocket, messages: &mut [Message], mdata: &mut [(usize, SocketAddr)]) -> Result<usize> {
+pub fn read_from(
+    socket: &UdpSocket,
+    messages: &mut [Message],
+    mdata: &mut [(usize, SocketAddr)],
+) -> Result<usize> {
     let sz = size_of::<Message>();
     let max = messages.len();
     let mut total = 0usize;
@@ -53,8 +57,6 @@ pub fn read_from(socket: &UdpSocket, messages: &mut [Message], mdata: &mut [(usi
     }
     Ok(ix)
 }
-
-
 
 pub fn read(socket: &UdpSocket, messages: &mut [Message], num: &mut usize) -> Result<()> {
     let sz = size_of::<Message>();
