@@ -49,9 +49,15 @@ pub fn read_from(
                 return Ok(ix);
             }
             let buf = transmute(from_raw_parts(p as *mut u8, MAX_PACKET));
-            let (nrecv, from) = socket.recv_from(buf)?;
-            total = total + nrecv / sz;
-            *mdata.get_unchecked_mut(ix) = (nrecv / sz, from);
+            match socket.recv_from(buf) {
+                Err(IO(e)) => if Some(35) == e.raw_os_error() {
+                    return Ok(ix);
+                }
+                Ok((nrecv, from)) => {
+                    total = total + nrecv / sz;
+                    *mdata.get_unchecked_mut(ix) = (nrecv / sz, from);
+                }
+            }
         }
         ix = ix + 1;
     }
