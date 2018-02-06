@@ -38,14 +38,13 @@ struct Data {
 pub struct Reader {
     lock: Mutex<Data>,
     port: u16,
-    done: bool,
 }
 impl Reader {
     pub fn new(port: u16) -> Reader {
         let d = Data { gc: Vec::new(),
                        pending: VecDeque::new() };
 
-        return Reader{lock: Mutex::new(d), port: port, done: false};
+        return Reader{lock: Mutex::new(d), port: port};
     }
     pub fn next(&self) -> Result<SharedMessages> {
         let mut d = self.lock.lock().expect("lock");
@@ -56,7 +55,7 @@ impl Reader {
         let mut d = self.lock.lock().expect("lock");
         d.gc.push(m);
     }
-    pub fn run(&self) -> Result<()> {
+    pub fn run(&self, exit: Arc<Mutex<bool>>) -> Result<()> {
         let ipv4 = Ipv4Addr::new(0, 0, 0, 0);
         let addr = SocketAddr::new(IpAddr::V4(ipv4), self.port);
         const READABLE: mio::Token = mio::Token(0);
@@ -66,7 +65,7 @@ impl Reader {
                        mio::PollOpt::edge())?;
         let mut events = mio::Events::with_capacity(8);
         
-        while self.done == false {
+        loop {
             let timeout = Duration::new(1, 0);
             match poll.poll(&mut events, Some(timeout)) {
                 Err(_) => continue,
@@ -82,11 +81,13 @@ impl Reader {
                     self.notify();
                 }
             }
+            {
+                let e = exit.lock().expect("lock");
+                if *e == true {
+                    return Ok(());
+                }
+            }
         }
-        return Ok(());
-    }
-    pub fn exit(&mut self) {
-        self.done = true;
     }
     fn notify(&self) {
         //TODO(anatoly), hard code other threads to notify
@@ -109,9 +110,12 @@ use std::thread::spawn;
 
 #[test]
 fn reader_test() {
-    let mut reader = Reader::new(12345);
+    let reader = Arc::new(Reader::new(12345));
+    let c_reader = reader.clone();
+    let exit = Arc::new(Mutex::new(false));
+    let c_exit = exit.clone();
     let t = spawn(move || {
-        reader.run();
+        return c_reader.run(c_exit);
     });
     let cli = net::client("127.0.0.1:12345").expect("client");
     let m = [data::Message::default(); 64];
@@ -123,7 +127,7 @@ fn reader_test() {
         }
     }
     let r = reader.next().expect("messages");
-    reader.exit();
-    t.join();
+    *exit.lock().expect("lock") = true;
+    t.join().expect("join").expect("run");
     assert_eq!(r.msgs.len(), 64);
 }
