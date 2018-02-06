@@ -9,6 +9,7 @@ pub mod gossip;
 pub mod wallet;
 pub mod aes;
 pub mod ledger;
+pub mod reader;
 extern crate core;
 extern crate crypto;
 extern crate getopts;

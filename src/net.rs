@@ -18,6 +18,13 @@ pub fn server() -> Result<UdpSocket> {
     Ok(ret)
 }
 
+pub fn ledger_server() -> Result<UdpSocket> {
+    let addr = "0.0.0.0:12346".parse()?;
+    let ret = UdpSocket::bind(&addr)?;
+    //    ret.set_nonblocking(true)?;
+    Ok(ret)
+}
+
 pub fn client(uri: &str) -> Result<UdpSocket> {
     let addr = "0.0.0.0:0".parse()?;
     let ret = UdpSocket::bind(&addr)?;
@@ -25,6 +32,29 @@ pub fn client(uri: &str) -> Result<UdpSocket> {
     ret.connect(to)?;
     Ok(ret)
 }
+
+pub fn read_from(socket: &UdpSocket, messages: &mut [Message], mdata: &mut [(usize, SocketAddr)]) -> Result<usize> {
+    let sz = size_of::<Message>();
+    let max = messages.len();
+    let mut total = 0usize;
+    let mut ix = 0usize;
+    while total < max {
+        unsafe {
+            let p = &mut messages[total] as *mut Message;
+            if (max - total) * sz < MAX_PACKET {
+                return Ok(ix);
+            }
+            let buf = transmute(from_raw_parts(p as *mut u8, MAX_PACKET));
+            let (nrecv, from) = socket.recv_from(buf)?;
+            total = total + nrecv / sz;
+            *mdata.get_unchecked_mut(ix) = (nrecv / sz, from);
+        }
+        ix = ix + 1;
+    }
+    Ok(ix)
+}
+
+
 
 pub fn read(socket: &UdpSocket, messages: &mut [Message], num: &mut usize) -> Result<()> {
     let sz = size_of::<Message>();

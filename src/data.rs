@@ -2,12 +2,8 @@ use hasht::{HashT, Key, Val};
 #[derive(Default, Copy, Clone)]
 #[repr(C)]
 pub struct Transaction {
-    pub lvh: [u8; 32],
-    pub from: [u8; 32],
     pub to: [u8; 32],
-    pub lvh_count: u64,
     pub amount: u64,
-    pub fee: u64,
 }
 
 #[derive(Copy, Clone)]
@@ -103,11 +99,15 @@ pub const MAX_PACKET: usize = 1024 * 4;
 #[derive(Default, Copy, Clone)]
 #[repr(C)]
 pub struct Payload {
+    pub from: [u8; 32],
+    pub lvh: [u8; 32],
+    pub lvh_count: u64,
+    pub fee: u64,
+    pub data: MessageData,
     pub version: u32,
     pub kind: Kind,
-    pub state: State,
-    pub unused: u16,
-    pub data: MessageData,
+    pub state: State,   //zero when signed
+    pub unused: u16,    //zero when signed
 }
 
 #[derive(Copy, Clone)]
