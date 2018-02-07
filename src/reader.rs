@@ -14,17 +14,15 @@ pub struct Messages {
 
 impl Messages {
     fn new() -> Messages {
-        let mut m = Vec::new();
-        m.resize(1024, data::Message::default());
-        let mut d = Vec::new();
-        d.resize(1024, Self::def_data());
-        Messages { msgs: m, data: d }
+        Messages { 
+            msgs: vec![data::Message::default(); 1024],
+            data: vec![Self::def_data(); 1024],
+        }
     }
     fn def_data() -> (usize, SocketAddr) {
         let ipv4 = Ipv4Addr::new(0, 0, 0, 0);
         let addr = SocketAddr::new(IpAddr::V4(ipv4), 0);
-        let df = (0, addr);
-        return df;
+        (0, addr)
     }
 }
 
@@ -101,8 +99,7 @@ impl Reader {
                     }
                 }
             }
-            let c = Arc::clone(&m);
-            self.enqueue(c);
+            self.enqueue(m);
             self.notify();
         }
     }
@@ -111,10 +108,7 @@ impl Reader {
     }
     fn allocate(&self) -> SharedMessages {
         let mut s = self.lock.lock().expect("lock");
-        return match s.gc.pop() {
-            Some(v) => v,
-            _ => Arc::new(Messages::new()),
-        };
+        s.gc.pop().unwrap_or_else(|| Arc::new(Messages::new()))
     }
     fn enqueue(&self, m: SharedMessages) {
         let mut s = self.lock.lock().expect("lock");

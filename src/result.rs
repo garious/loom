@@ -28,10 +28,7 @@ impl PartialEq for Error {
 pub type Result<T> = core::result::Result<T, Error>;
 
 pub fn from_option<T>(r: Option<T>) -> Result<T> {
-    match r {
-        Some(v) => Ok(v),
-        None => Err(Error::NoneError),
-    }
+    r.ok_or(Error::NoneError)
 }
 
 impl core::convert::From<std::io::Error> for Error {
