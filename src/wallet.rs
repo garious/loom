@@ -1,3 +1,5 @@
+//! wallet library
+
 use std::slice::from_raw_parts;
 use std::fs::File;
 use std::mem::transmute;

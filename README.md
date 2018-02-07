@@ -23,49 +23,70 @@ Roadmap
 
 https://github.com/loomprotocol/loom/milestones
 
-src/bin/client.rs
------------------
+Usage
+=====
 
-user client binary that implements a basic wallet
+The build produces a handle of command-line executables in the "target/release/" directory, `client`, `spool` and `loom`.
 
-TBD, conform to a full wallet spec instead of rolling our own
+loom
+----
 
-src/bin/spool.rs
----------------
+builds the blockchain
 
-spool daemon for verifiers
+```
+Usage: loom [options]
 
-
-src/bin/loom.rs
----------------
-
-loom daemon
+Options:
+    -h, --help          print this help menu
+```
 
 
-src/data.rs
------------
+spool
+-----
 
-data structures for the protocol, data types must have little endian C99 layout, no gaps, and same layout on LP64 and LLP64 and other variants.
+verifies the blockchain
 
-TBD a lightweight serealization format.
+```
+Usage: spool [options]
 
-src/net.rs
------------
+Options:
+    -h, --help          print this help menu
+```
 
-network code, assuming all endpoints are reading and writing little endian C99 LP64 layout.
 
-src/state.rs
------------
+client
+------
 
-state machine for transactions
+user client that implements a basic wallet
 
-src/gossip.rs
--------------
+```
+Usage: client FILE [options]
 
-track gossip subscribers
+Options:
+    -c                  create a new address
+    -x                  transfer
+    -b                  check the balance of destination address
+    -l, --list          list your addresses and balances
+    -h, --help          print this help menu
+    -t ADDRESS          destination address
+    -f ADDRESS          source address
+    -a AMOUNT           amount
+```
 
-src/wallet.rs
--------------
 
-wallet library
+Build instructions
+==================
+
+For development:
+
+```bash
+$ cargo +beta build
+```
+
+
+Optimized for performance:
+
+```bash
+$ cargo +beta build --release
+```
 

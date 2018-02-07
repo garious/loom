@@ -1,3 +1,7 @@
+//! data structures for the protocol, data types must have little endian C99 layout, no gaps, and same layout on LP64 and LLP64 and other variants.
+//!
+//! TBD a lightweight serialization format.
+
 use hasht::{HashT, Key, Val};
 #[derive(Default, Copy, Clone)]
 #[repr(C)]
