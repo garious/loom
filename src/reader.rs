@@ -77,13 +77,13 @@ impl Reader {
                     let r = net::read_from(&self.sock, &mut v.msgs, &mut v.data);
                     match r {
                         Err(IO(e)) => {
-                            println!("failed with IO error {:?}", e);
+                            warn!("failed with IO error {:?}", e);
                         }
                         Err(e) => {
-                            println!("read failed error {:?}", e);
+                            warn!("read failed error {:?}", e);
                         }
                         Ok(0) => {
-                            println!("read returned 0");
+                            info!("read returned 0");
                         }
                         Ok(num) => {
                             let s: usize = v.data.iter_mut().map(|v| v.0).sum();
