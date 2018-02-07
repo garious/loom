@@ -134,11 +134,15 @@ fn reader_test() {
         return c_reader.run(c_exit);
     });
     let cli = net::client("127.0.0.1:12001").expect("client");
+    let timer = Duration::new(0, 500000000);
+    cli.set_write_timeout(Some(timer)).expect("write timer");
     let m = [data::Message::default(); 64];
-    for n in 0..64 {
-        assert_eq!(m[n..n + 1].len(), 1);
-        let mut num = 0;
-        net::write(&cli, &m[n..n + 1], &mut num).expect("write");
+    let mut num = 0;
+    while num < 64 {
+        match net::write(&cli, &m[0..num + 1], &mut num) {
+            Err(_) => sleep(Duration::new(0, 500000000)),
+            _ => (),
+        }
     }
     let mut rvs = 0usize;
     let mut tries = 0;
