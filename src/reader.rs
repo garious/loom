@@ -91,13 +91,10 @@ impl Reader {
                             v.data.resize(num, Messages::def_data());
                         }
                     }
-                    {
-                        let e = exit.lock().expect("lock");
-                        if *e == true {
-                            return Ok(());
-                        }
+                    let e = exit.lock().expect("lock");
+                    if *e == true {
+                        return Ok(());
                     }
-
                 }
             }
             let c = Arc::clone(&m);
