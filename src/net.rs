@@ -131,44 +131,17 @@ pub fn sendtov4(
     send_to(socket, msgs, num, addr)
 }
 
-//#[cfg(test)]
-//use mio;
-//
-//#[test]
-//fn server_test() {
-//    const READABLE: mio::Token = mio::Token(0);
-//    const WRITABLE: mio::Token = mio::Token(1);
-//    let poll = mio::Poll::new().unwrap();
-//    let sz = size_of::<Message>();
-//    let srv = server().expect("couldn't create a server");
-//    let cli = client("127.0.0.1:12345").expect("client");
-//    let max = MAX_PACKET / sz;
-//    let mut m = [Message::default(); 26];
-//    let mut num = 0;
-//    poll.register(&cli, WRITABLE, mio::Ready::writable(), mio::PollOpt::edge())
-//        .unwrap();
-//    let mut events = mio::Events::with_capacity(8);
-//    poll.poll(&mut events, None).unwrap();
-//    for event in events.iter() {
-//        match event.token() {
-//            WRITABLE => {
-//                write(&cli, &m[0..max], &mut num).expect("write");
-//            }
-//            _ => (),
-//        }
-//    }
-//    assert!(num == max);
-//    num = 0;
-//    poll.register(&srv, READABLE, mio::Ready::readable(), mio::PollOpt::edge())
-//        .unwrap();
-//    poll.poll(&mut events, None).unwrap();
-//    for event in events.iter() {
-//        match event.token() {
-//            READABLE => {
-//                read(&srv, &mut m, &mut num).expect("read");
-//            }
-//            _ => (),
-//        }
-//    }
-//    assert!(num == max);
-//}
+#[test]
+fn read_write_test() {
+    let sz = size_of::<Message>();
+    let srv = server().expect("couldn't create a server");
+    let cli = client("127.0.0.1:12345").expect("client");
+    let max = MAX_PACKET / sz;
+    let mut m = [Message::default(); 26];
+    let mut num = 0;
+    write(&cli, &m[0..max], &mut num).expect("write");
+    assert!(num == max);
+
+    read(&srv, &mut m, &mut num).expect("read");
+    assert!(num == max);
+}
