@@ -1,9 +1,8 @@
 use std::sync::{Arc, Mutex};
 use std::collections::VecDeque;
-use std::net::{SocketAddr, Ipv4Addr, IpAddr};
+use std::net::{SocketAddr, Ipv4Addr, IpAddr, UdpSocket};
 use result::{Result, from_option};
-use std::time::Duration;
-use mio;
+use result::Error::IO;
 use data;
 use net;
 
@@ -37,14 +36,18 @@ struct Data {
 }
 pub struct Reader {
     lock: Mutex<Data>,
-    port: u16,
+    sock: UdpSocket,
 }
 impl Reader {
-    pub fn new(port: u16) -> Reader {
+    pub fn new(port: u16) -> Result<Reader> {
         let d = Data { gc: Vec::new(),
                        pending: VecDeque::new() };
 
-        return Reader{lock: Mutex::new(d), port: port};
+        let ipv4 = Ipv4Addr::new(0, 0, 0, 0);
+        let addr = SocketAddr::new(IpAddr::V4(ipv4), port);
+        let srv = UdpSocket::bind(&addr)?;
+        let rv = Reader{lock: Mutex::new(d), sock:srv};
+        return Ok(rv); 
     }
     pub fn next(&self) -> Result<SharedMessages> {
         let mut d = self.lock.lock().expect("lock");
@@ -55,16 +58,10 @@ impl Reader {
         let mut d = self.lock.lock().expect("lock");
         d.gc.push(m);
     }
+    pub fn exit(&self) {
+        self.sock.set_nonblocking(true).expect("set nonblocking");
+    }
     pub fn run(&self, exit: Arc<Mutex<bool>>) -> Result<()> {
-        let ipv4 = Ipv4Addr::new(0, 0, 0, 0);
-        let addr = SocketAddr::new(IpAddr::V4(ipv4), self.port);
-        const READABLE: mio::Token = mio::Token(0);
-        let poll = mio::Poll::new()?;
-        let srv = mio::net::UdpSocket::bind(&addr)?;
-        poll.register(&srv, READABLE, mio::Ready::readable(),
-                       mio::PollOpt::edge())?;
-        let mut events = mio::Events::with_capacity(8);
-        
         loop {
             {
                 let e = exit.lock().expect("lock");
@@ -72,46 +69,38 @@ impl Reader {
                     return Ok(());
                 }
             }
-            let timeout = Duration::new(2, 0);
-            println!("HERE polling");
-            match poll.poll(&mut events, Some(timeout)) {
-                Err(_) => {
-                    println!("HERE error");
-                    continue;
-                }
-                Ok(_) => {
-                    println!("HERE ok");
-                    let mut m =  self.allocate();
-                    let mut total = 0;
-                    {
-                        let v = Arc::get_mut(&mut m).expect("only ref");
-                        match net::read_from(&srv, &mut v.msgs, &mut v.data) {
-                            Err(e) => {
-                                println!("HERE read failed error {:?}", e);
-                            }
-                            Ok(0) => {
-                                println!("HERE read returned 0");
-                            }
-                            Ok(num) => {
-                                println!("HERE read {:?}", num);
-                                total = v.data.iter_mut()
-                                              .map(|v| v.0)
-                                              .sum();
-                                v.msgs.resize(total, data::Message::default());
-                                v.data.resize(num, Messages::def_data());
-                            }
-                        }
+            let mut m = self.allocate();
+            loop {
+                let v = Arc::get_mut(&mut m).expect("only ref");
+                v.msgs.resize(1024, data::Message::default());
+                v.data.resize(1024, Messages::def_data());
+                match net::read_from(&self.sock, &mut v.msgs, &mut v.data) {
+                    Err(IO(e)) => {
+                        println!("HERE read failed with IO error {:?}", e);
+                        break;
                     }
-                    let c = Arc::clone(&m);
-                    if total > 0 {
-                        println!("HERE enqueue");
-                        self.enqueue(c);
-                        self.notify();
-                    } else {
-                        self.recycle(c);
+                    Err(e) => {
+                        println!("HERE read failed error {:?}", e);
+                        break;
+                    }
+                    Ok(0) => {
+                        println!("HERE read returned 0");
+                        break;
+                    }
+                    Ok(num) => {
+                        println!("HERE read {:?}", num);
+                        let total = v.data.iter_mut()
+                                          .map(|v| v.0)
+                                          .sum();
+                        v.msgs.resize(total, data::Message::default());
+                        v.data.resize(num, Messages::def_data());
                     }
                 }
             }
+            let c = Arc::clone(&m);
+            println!("HERE enqueue");
+            self.enqueue(c);
+            self.notify();
         }
     }
     fn notify(&self) {
@@ -134,49 +123,29 @@ impl Reader {
 use std::thread::spawn;
 #[cfg(test)]
 use std::thread::sleep;
+#[cfg(test)]
+use std::time::Duration;
 
 #[test]
 fn reader_test() {
-    const WRITABLE: mio::Token = mio::Token(1);
-    let reader = Arc::new(Reader::new(12001));
+    let reader = Arc::new(Reader::new(12001).expect("reader"));
     let c_reader = reader.clone();
     let exit = Arc::new(Mutex::new(false));
     let c_exit = exit.clone();
     let t = spawn(move || {
         return c_reader.run(c_exit);
     });
-    let cli = net::socket().expect("client");
+    let cli = net::client("127.0.0.1:12001").expect("client");
     let m = [data::Message::default(); 64];
-    let poll = mio::Poll::new().unwrap();
-    poll.register(&cli, WRITABLE, mio::Ready::writable(),
-                  mio::PollOpt::edge()).expect("poll");
-    let mut events = mio::Events::with_capacity(8);
-    let toaddr = "127.0.0.1:12001".parse().expect("parse");
-    for n in 0 .. 63 { 
+    for n in 0 .. 64 { 
         println!("HERE writing {:?}", n);
         assert_eq!(m[n..n + 1].len(), 1);
         let mut num = 0;
-        poll.poll(&mut events, None).unwrap();
-        for event in events.iter() {
-            match event.token() {
-                WRITABLE => {
-                    match net::send_to(&cli, &m[n.. n + 1], &mut num, toaddr) {
-                        Err(e) => {
-                            println!("HERE error writing {:?}", e);
-                            break;
-                        }
-                        Ok(()) => {
-                            println!("HERE writing ok");
-                        }
-                    }
-                }
-                _ => (),
-            }
-        }
-
+        net::write(&cli, &m[n.. n + 1], &mut num).expect("write");
+        println!("HERE wrote {:?}", num);
     }
-    assert!(false);
     let mut rvs = 0usize; 
+    sleep(Duration::new(1, 0));
     for _n in 0 .. 63 { 
         match reader.next() {
             Err(_) => (),
@@ -185,9 +154,9 @@ fn reader_test() {
                 println!("HERE got msgs {:?}", rvs);
             }
         }
-        sleep(Duration::new(1, 0));
     }
     println!("HERE exiting");
+    reader.exit();
     *exit.lock().expect("lock") = true;
     let o = t.join().expect("thread join");
     o.expect("thread output");

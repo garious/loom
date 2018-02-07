@@ -2,7 +2,7 @@
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom, Write};
 use result::Result;
-use mio::net::UdpSocket;
+use std::net::UdpSocket;
 use std::mem::transmute;
 use std::mem::size_of;
 use std::slice::from_raw_parts;

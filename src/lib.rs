@@ -13,7 +13,6 @@ pub mod reader;
 extern crate core;
 extern crate crypto;
 extern crate getopts;
-extern crate mio;
 extern crate rand;
 extern crate serde;
 #[macro_use]
