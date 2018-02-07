@@ -3,6 +3,7 @@ use std::collections::VecDeque;
 use std::net::{SocketAddr, Ipv4Addr, IpAddr, UdpSocket};
 use result::{Result, from_option};
 use result::Error::IO;
+use std::time::Duration;
 use data;
 use net;
 
@@ -46,6 +47,8 @@ impl Reader {
         let ipv4 = Ipv4Addr::new(0, 0, 0, 0);
         let addr = SocketAddr::new(IpAddr::V4(ipv4), port);
         let srv = UdpSocket::bind(&addr)?;
+        let timer = Duration::new(1, 500000000);
+        srv.set_read_timeout(Some(timer))?;
         let rv = Reader{lock: Mutex::new(d), sock:srv};
         return Ok(rv); 
     }
@@ -58,44 +61,46 @@ impl Reader {
         let mut d = self.lock.lock().expect("lock");
         d.gc.push(m);
     }
-    pub fn exit(&self) {
-        self.sock.set_nonblocking(true).expect("set nonblocking");
-    }
     pub fn run(&self, exit: Arc<Mutex<bool>>) -> Result<()> {
         loop {
-            {
-                let e = exit.lock().expect("lock");
-                if *e == true {
-                    return Ok(());
-                }
-            }
             let mut m = self.allocate();
             {
                 let v = Arc::get_mut(&mut m).expect("only ref");
                 v.msgs.resize(1024, data::Message::default());
                 v.data.resize(1024, Messages::def_data());
-                match net::read_from(&self.sock, &mut v.msgs, &mut v.data) {
-                    Err(IO(e)) => {
-                        println!("HERE read failed with IO error {:?}", e);
+                let mut total = 0usize;
+                while total == 0usize {
+                    let r = net::read_from(&self.sock, &mut v.msgs,
+                                           &mut v.data);
+                    match r {
+                        Err(IO(e)) => {
+                            println!("failed with IO error {:?}", e);
+                        }
+                        Err(e) => {
+                            println!("read failed error {:?}", e);
+                        }
+                        Ok(0) => {
+                            println!("read returned 0");
+                        }
+                        Ok(num) => {
+                            let s: usize = v.data.iter_mut()
+                                                 .map(|v| v.0)
+                                                 .sum();
+                            total += s;
+                            v.msgs.resize(s, data::Message::default());
+                            v.data.resize(num, Messages::def_data());
+                        }
                     }
-                    Err(e) => {
-                        println!("HERE read failed error {:?}", e);
+                    {
+                        let e = exit.lock().expect("lock");
+                        if *e == true {
+                            return Ok(());
+                        }
                     }
-                    Ok(0) => {
-                        println!("HERE read returned 0");
-                    }
-                    Ok(num) => {
-                        println!("HERE read {:?}", num);
-                        let total = v.data.iter_mut()
-                                          .map(|v| v.0)
-                                          .sum();
-                        v.msgs.resize(total, data::Message::default());
-                        v.data.resize(num, Messages::def_data());
-                    }
+
                 }
             }
             let c = Arc::clone(&m);
-            println!("HERE enqueue");
             self.enqueue(c);
             self.notify();
         }
@@ -120,8 +125,6 @@ impl Reader {
 use std::thread::spawn;
 #[cfg(test)]
 use std::thread::sleep;
-#[cfg(test)]
-use std::time::Duration;
 
 #[test]
 fn reader_test() {
@@ -135,11 +138,9 @@ fn reader_test() {
     let cli = net::client("127.0.0.1:12001").expect("client");
     let m = [data::Message::default(); 64];
     for n in 0 .. 64 { 
-        println!("HERE writing {:?}", n);
         assert_eq!(m[n..n + 1].len(), 1);
         let mut num = 0;
         net::write(&cli, &m[n.. n + 1], &mut num).expect("write");
-        println!("HERE wrote {:?}", num);
     }
     let mut rvs = 0usize; 
     sleep(Duration::new(1, 0));
@@ -148,13 +149,10 @@ fn reader_test() {
             Err(_) => (),
             Ok(msgs) => {
                 rvs += msgs.data.len();
-                println!("HERE got msgs {:?}", rvs);
             }
         }
     }
-    println!("HERE setting exit");
     *exit.lock().expect("lock") = true;
-    println!("HERE exiting");
     {
         let mut num = 0;
         net::write(&cli, &m[0.. 1], &mut num).expect("write");
