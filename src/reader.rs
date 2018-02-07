@@ -48,7 +48,7 @@ impl Reader {
         let ipv4 = Ipv4Addr::new(0, 0, 0, 0);
         let addr = SocketAddr::new(IpAddr::V4(ipv4), port);
         let srv = UdpSocket::bind(&addr)?;
-        let timer = Duration::new(1, 500000000);
+        let timer = Duration::new(0, 500000000);
         srv.set_read_timeout(Some(timer))?;
         let rv = Reader {
             lock: Mutex::new(d),
@@ -145,7 +145,7 @@ fn reader_test() {
     while rvs < 64 && tries < 100 {
         match reader.next() {
             Err(_) => {
-                sleep(Duration::new(0, 50000000));
+                sleep(Duration::new(0, 500000000));
             }
             Ok(msgs) => {
                 rvs += msgs.data.len();
