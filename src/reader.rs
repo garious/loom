@@ -104,7 +104,7 @@ impl Reader {
         }
     }
     fn notify(&self) {
-        //TODO(anatoly), hard code other threads to notify
+        //TODO(anatoly),  maybe this will work.  https://doc.rust-lang.org/std/sync/struct.Condvar.html#method.notify_all
     }
     fn allocate(&self) -> SharedMessages {
         let mut s = self.lock.lock().expect("lock");
@@ -127,9 +127,7 @@ fn reader_test() {
     let c_reader = reader.clone();
     let exit = Arc::new(Mutex::new(false));
     let c_exit = exit.clone();
-    let t = spawn(move || {
-        return c_reader.run(c_exit);
-    });
+    let t = spawn(move || c_reader.run(c_exit));
     let cli = net::client("127.0.0.1:12001").expect("client");
     let timer = Duration::new(1,0);
     cli.set_write_timeout(Some(timer)).expect("write timer");
@@ -155,7 +153,7 @@ fn reader_test() {
                 rvs += msgs.data.len();
             }
         }
-        tries = tries + 1;
+        tries += 1;
         trace!("read {:?} {:?}", rvs, tries);
     }
     *exit.lock().expect("lock") = true;

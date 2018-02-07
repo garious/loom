@@ -45,33 +45,33 @@ pub fn read_from(
     let mut ix = 0usize;
     socket.set_nonblocking(false)?;
     while total < max {
-        unsafe {
-            let p = &mut messages[total] as *mut Message;
-            if (max - total) * sz < MAX_PACKET {
-                return Ok(ix);
-            }
-            let buf = transmute(from_raw_parts(p as *mut u8, MAX_PACKET));
-            trace!("recv_from");
-            match socket.recv_from(buf) {
-                Err(_) if ix > 0 => {
-                    socket.set_nonblocking(false)?;
-                    return Ok(ix);
-                },
-                Err(e) => {
-                    info!("recv_from err {:?}", e);
-                    return Err(IO(e));
-                }
-                Ok((nrecv, from)) => {
-                    trace!("got recv_from {:?}", nrecv);
-                    total = total + nrecv / sz;
-                    trace!("total recv_from {:?}", total);
-                    *mdata.get_unchecked_mut(ix) = (nrecv / sz, from);
-                    ix = ix + 1;
-                    socket.set_nonblocking(true)?;
-                }
-            }
-            trace!("done recv_from");
+        let p = &mut messages[total] as *mut Message;
+        if (max - total) * sz < MAX_PACKET {
+            return Ok(ix);
         }
+        let buf = unsafe { transmute(from_raw_parts(p as *mut u8, MAX_PACKET)) };
+        trace!("recv_from");
+        match socket.recv_from(buf) {
+            Err(_) if ix > 0 => {
+                socket.set_nonblocking(false)?;
+                return Ok(ix);
+            },
+            Err(e) => {
+                info!("recv_from err {:?}", e);
+                return Err(IO(e));
+            }
+            Ok((nrecv, from)) => {
+                trace!("got recv_from {:?}", nrecv);
+                total += nrecv / sz;
+                trace!("total recv_from {:?}", total);
+                unsafe {
+                    *mdata.get_unchecked_mut(ix) = (nrecv / sz, from);
+                }
+                ix += 1;
+                socket.set_nonblocking(true)?;
+            }
+        }
+        trace!("done recv_from");
     }
     Ok(ix)
 }
@@ -117,13 +117,11 @@ pub fn send_to(
     let sz = size_of::<Message>();
     let max = msgs.len();
     while *num < max {
-        unsafe {
-            let p = &msgs[*num] as *const Message;
-            let bz = min(MAX_PACKET / sz, max - *num) * sz;
-            let buf = transmute(from_raw_parts(p as *const u8, bz));
-            let sent_size = socket.send_to(buf, &addr)?;
-            *num = *num + sent_size / sz;
-        }
+        let p = &msgs[*num] as *const Message;
+        let bz = min(MAX_PACKET / sz, max - *num) * sz;
+        let buf = unsafe { transmute(from_raw_parts(p as *const u8, bz)) };
+        let sent_size = socket.send_to(buf, &addr)?;
+        *num = *num + sent_size / sz;
     }
     Ok(())
 }
