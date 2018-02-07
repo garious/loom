@@ -10,6 +10,7 @@ use std::net::Ipv4Addr;
 use std::net::IpAddr;
 use data::{Message, MAX_PACKET};
 use result::Result;
+use result::Error::IO;
 
 pub fn server() -> Result<UdpSocket> {
     let ret = UdpSocket::bind("0.0.0.0:12345")?;
@@ -50,18 +51,26 @@ pub fn read_from(
                 return Ok(ix);
             }
             let buf = transmute(from_raw_parts(p as *mut u8, MAX_PACKET));
+            trace!("recv_from");
             match socket.recv_from(buf) {
-                Err(e) => if Some(35) == e.raw_os_error() {
+                Err(_) if ix > 0 => {
                     socket.set_nonblocking(false)?;
                     return Ok(ix);
                 },
+                Err(e) => {
+                    info!("recv_from err {:?}", e);
+                    return Err(IO(e));
+                }
                 Ok((nrecv, from)) => {
+                    trace!("got recv_from {:?}", nrecv);
                     total = total + nrecv / sz;
+                    trace!("total recv_from {:?}", total);
                     *mdata.get_unchecked_mut(ix) = (nrecv / sz, from);
                     ix = ix + 1;
                     socket.set_nonblocking(true)?;
                 }
             }
+            trace!("done recv_from");
         }
     }
     Ok(ix)
