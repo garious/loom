@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use std::collections::VecDeque;
-use std::net::{SocketAddr, Ipv4Addr, IpAddr, UdpSocket};
-use result::{Result, from_option};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
+use result::{from_option, Result};
 use result::Error::IO;
 use std::time::Duration;
 use data;
@@ -9,7 +9,7 @@ use net;
 
 pub struct Messages {
     msgs: Vec<data::Message>,
-    data: Vec<(usize,SocketAddr)>,
+    data: Vec<(usize, SocketAddr)>,
 }
 
 impl Messages {
@@ -18,15 +18,14 @@ impl Messages {
         m.resize(1024, data::Message::default());
         let mut d = Vec::new();
         d.resize(1024, Self::def_data());
-        Messages{msgs:m, data:d}
+        Messages { msgs: m, data: d }
     }
     fn def_data() -> (usize, SocketAddr) {
-         let ipv4 = Ipv4Addr::new(0, 0, 0, 0);
-         let addr = SocketAddr::new(IpAddr::V4(ipv4), 0);
-         let df = (0, addr);
-         return df;
-     }
-
+        let ipv4 = Ipv4Addr::new(0, 0, 0, 0);
+        let addr = SocketAddr::new(IpAddr::V4(ipv4), 0);
+        let df = (0, addr);
+        return df;
+    }
 }
 
 pub type SharedMessages = Arc<Messages>;
@@ -41,16 +40,21 @@ pub struct Reader {
 }
 impl Reader {
     pub fn new(port: u16) -> Result<Reader> {
-        let d = Data { gc: Vec::new(),
-                       pending: VecDeque::new() };
+        let d = Data {
+            gc: Vec::new(),
+            pending: VecDeque::new(),
+        };
 
         let ipv4 = Ipv4Addr::new(0, 0, 0, 0);
         let addr = SocketAddr::new(IpAddr::V4(ipv4), port);
         let srv = UdpSocket::bind(&addr)?;
         let timer = Duration::new(1, 500000000);
         srv.set_read_timeout(Some(timer))?;
-        let rv = Reader{lock: Mutex::new(d), sock:srv};
-        return Ok(rv); 
+        let rv = Reader {
+            lock: Mutex::new(d),
+            sock: srv,
+        };
+        return Ok(rv);
     }
     pub fn next(&self) -> Result<SharedMessages> {
         let mut d = self.lock.lock().expect("lock");
@@ -70,8 +74,7 @@ impl Reader {
                 v.data.resize(1024, Messages::def_data());
                 let mut total = 0usize;
                 while total == 0usize {
-                    let r = net::read_from(&self.sock, &mut v.msgs,
-                                           &mut v.data);
+                    let r = net::read_from(&self.sock, &mut v.msgs, &mut v.data);
                     match r {
                         Err(IO(e)) => {
                             println!("failed with IO error {:?}", e);
@@ -83,9 +86,7 @@ impl Reader {
                             println!("read returned 0");
                         }
                         Ok(num) => {
-                            let s: usize = v.data.iter_mut()
-                                                 .map(|v| v.0)
-                                                 .sum();
+                            let s: usize = v.data.iter_mut().map(|v| v.0).sum();
                             total += s;
                             v.msgs.resize(s, data::Message::default());
                             v.data.resize(num, Messages::def_data());
@@ -108,9 +109,9 @@ impl Reader {
     fn allocate(&self) -> SharedMessages {
         let mut s = self.lock.lock().expect("lock");
         return match s.gc.pop() {
-                Some(v) => v,
-                _ => Arc::new(Messages::new())
-        }
+            Some(v) => v,
+            _ => Arc::new(Messages::new()),
+        };
     }
     fn enqueue(&self, m: SharedMessages) {
         let mut s = self.lock.lock().expect("lock");
@@ -134,14 +135,14 @@ fn reader_test() {
     });
     let cli = net::client("127.0.0.1:12001").expect("client");
     let m = [data::Message::default(); 64];
-    for n in 0 .. 64 { 
+    for n in 0..64 {
         assert_eq!(m[n..n + 1].len(), 1);
         let mut num = 0;
-        net::write(&cli, &m[n.. n + 1], &mut num).expect("write");
+        net::write(&cli, &m[n..n + 1], &mut num).expect("write");
     }
-    let mut rvs = 0usize; 
+    let mut rvs = 0usize;
     sleep(Duration::new(1, 0));
-    for _n in 0 .. 63 { 
+    for _n in 0..63 {
         match reader.next() {
             Err(_) => (),
             Ok(msgs) => {
@@ -152,7 +153,7 @@ fn reader_test() {
     *exit.lock().expect("lock") = true;
     {
         let mut num = 0;
-        net::write(&cli, &m[0.. 1], &mut num).expect("write");
+        net::write(&cli, &m[0..1], &mut num).expect("write");
     }
     let o = t.join().expect("thread join");
     o.expect("thread output");

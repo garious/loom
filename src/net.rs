@@ -33,7 +33,6 @@ pub fn socket() -> Result<UdpSocket> {
     Ok(ret)
 }
 
-
 pub fn read_from(
     socket: &UdpSocket,
     messages: &mut [Message],
@@ -55,7 +54,7 @@ pub fn read_from(
                 Err(e) => if Some(35) == e.raw_os_error() {
                     socket.set_nonblocking(false)?;
                     return Ok(ix);
-                }
+                },
                 Ok((nrecv, from)) => {
                     total = total + nrecv / sz;
                     *mdata.get_unchecked_mut(ix) = (nrecv / sz, from);
@@ -119,7 +118,6 @@ pub fn send_to(
     }
     Ok(())
 }
-
 
 pub fn sendtov4(
     socket: &UdpSocket,
