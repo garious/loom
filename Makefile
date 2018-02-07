@@ -6,7 +6,7 @@ bench:
 
 
 cov:
-	docker run -it --rm --security-opt seccomp=unconfined --volume "$$(PWD):/volume" elmtai/docker-rust-kcov
+	docker run -it --rm --security-opt seccomp=unconfined --volume "$$PWD:/volume" elmtai/docker-rust-kcov
 
 fmt:
 	cargo fmt -- --write-mode=diff
