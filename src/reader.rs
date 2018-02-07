@@ -14,7 +14,7 @@ pub struct Messages {
 
 impl Messages {
     fn new() -> Messages {
-        Messages { 
+        Messages {
             msgs: vec![data::Message::default(); 1024],
             data: vec![Self::def_data(); 1024],
         }
@@ -129,7 +129,7 @@ fn reader_test() {
     let c_exit = exit.clone();
     let t = spawn(move || c_reader.run(c_exit));
     let cli = net::client("127.0.0.1:12001").expect("client");
-    let timer = Duration::new(1,0);
+    let timer = Duration::new(1, 0);
     cli.set_write_timeout(Some(timer)).expect("write timer");
     let m = [data::Message::default(); 64];
     let mut num = 0;

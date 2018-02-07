@@ -13,10 +13,10 @@ pub mod reader;
 extern crate core;
 extern crate crypto;
 extern crate getopts;
+#[macro_use]
+extern crate log;
 extern crate rand;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
-#[macro_use]
-extern crate log;

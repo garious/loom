@@ -55,7 +55,7 @@ pub fn read_from(
             Err(_) if ix > 0 => {
                 socket.set_nonblocking(false)?;
                 return Ok(ix);
-            },
+            }
             Err(e) => {
                 info!("recv_from err {:?}", e);
                 return Err(IO(e));
