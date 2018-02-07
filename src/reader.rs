@@ -141,20 +141,19 @@ fn reader_test() {
         net::write(&cli, &m[n..n + 1], &mut num).expect("write");
     }
     let mut rvs = 0usize;
-    sleep(Duration::new(1, 0));
-    for _n in 0..63 {
+    let mut tries = 0;
+    while rvs < 64 && tries < 100 {
         match reader.next() {
-            Err(_) => (),
+            Err(_) => {
+                sleep(Duration::new(0, 50000000));
+            }
             Ok(msgs) => {
                 rvs += msgs.data.len();
             }
         }
+        tries = tries + 1;
     }
     *exit.lock().expect("lock") = true;
-    {
-        let mut num = 0;
-        net::write(&cli, &m[0..1], &mut num).expect("write");
-    }
     let o = t.join().expect("thread join");
     o.expect("thread output");
     assert_eq!(rvs, 64);
