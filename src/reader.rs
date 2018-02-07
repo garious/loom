@@ -70,22 +70,19 @@ impl Reader {
                 }
             }
             let mut m = self.allocate();
-            loop {
+            {
                 let v = Arc::get_mut(&mut m).expect("only ref");
                 v.msgs.resize(1024, data::Message::default());
                 v.data.resize(1024, Messages::def_data());
                 match net::read_from(&self.sock, &mut v.msgs, &mut v.data) {
                     Err(IO(e)) => {
                         println!("HERE read failed with IO error {:?}", e);
-                        break;
                     }
                     Err(e) => {
                         println!("HERE read failed error {:?}", e);
-                        break;
                     }
                     Ok(0) => {
                         println!("HERE read returned 0");
-                        break;
                     }
                     Ok(num) => {
                         println!("HERE read {:?}", num);
@@ -155,9 +152,13 @@ fn reader_test() {
             }
         }
     }
-    println!("HERE exiting");
-    reader.exit();
+    println!("HERE setting exit");
     *exit.lock().expect("lock") = true;
+    println!("HERE exiting");
+    {
+        let mut num = 0;
+        net::write(&cli, &m[0.. 1], &mut num).expect("write");
+    }
     let o = t.join().expect("thread join");
     o.expect("thread output");
     assert_eq!(rvs, 64);
