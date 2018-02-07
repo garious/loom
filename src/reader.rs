@@ -138,14 +138,16 @@ fn reader_test() {
     cli.set_write_timeout(Some(timer)).expect("write timer");
     let m = [data::Message::default(); 64];
     let mut num = 0;
-    while num < 64 {
+    let mut tries = 0;
+    while num < 64 && tries < 100 {
         match net::write(&cli, &m[0..num + 1], &mut num) {
             Err(_) => sleep(Duration::new(0, 500000000)),
             _ => (),
         }
+        tries += 1;
     }
     let mut rvs = 0usize;
-    let mut tries = 0;
+    tries = 0;
     while rvs < 64 && tries < 100 {
         match reader.next() {
             Err(_) => {
