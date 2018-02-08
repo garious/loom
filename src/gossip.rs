@@ -47,18 +47,17 @@ impl Gossip {
             data::Kind::Signature => self.now = m.pld.get_poh().counter,
             data::Kind::Subscribe => {
                 let pos = SubT::find(&self.subs, &m.pld.get_sub().key)?;
-                let now = self.now;
-                let update = Subscriber {
-                    key: m.pld.get_sub().key,
-                    addr: m.pld.get_sub().addr,
-                    port: m.pld.get_sub().port,
-                    lastping: now,
-                };
-                let g = unsafe { self.subs.get_unchecked_mut(pos) };
+                let g = self.subs.get_mut(pos).unwrap();
                 if g.key.unused() {
-                    *new = *new + 1;
+                    *new += 1;
                 }
-                *g = update;
+                let s = m.pld.get_sub();
+                *g = Subscriber {
+                    key: s.key,
+                    addr: s.addr,
+                    port: s.port,
+                    lastping: self.now,
+                };
             }
             _ => return Ok(()),
         }

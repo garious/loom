@@ -38,11 +38,9 @@ impl State {
         (sf, st): (usize, usize),
     ) -> (&'a mut data::Account, &'a mut data::Account) {
         let ptr = state.as_mut_ptr();
-        unsafe {
-            let from = ptr.offset(sf as isize).as_mut().unwrap();
-            let to = ptr.offset(st as isize).as_mut().unwrap();
-            (from, to)
-        }
+        let from = unsafe { ptr.offset(sf as isize).as_mut().unwrap() };
+        let to = unsafe { ptr.offset(st as isize).as_mut().unwrap() };
+        (from, to)
     }
 
     fn exec(state: &mut [data::Account], m: &mut data::Message, num_new: &mut usize) -> Result<()> {
