@@ -33,7 +33,7 @@ impl Ledger {
     }
     fn exec(&self, sock: &UdpSocket, m: &data::Message) -> Result<()> {
         if let data::Kind::GetLedger = m.pld.kind {
-            let get = unsafe { &m.pld.data.get };
+            let get = &m.pld.get_get();
             self.get_ledger(sock, get)?;
         }
         Ok(())

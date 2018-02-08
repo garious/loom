@@ -25,11 +25,9 @@ where
         let st = key.start();
         for i in 0..num_elems {
             let pos = st.wrapping_add(i) % num_elems;
-            unsafe {
-                let k = tbl.get_unchecked(pos).key();
-                if k.unused() || k == key {
-                    return Ok(pos);
-                }
+            let k = unsafe { tbl.get_unchecked(pos).key() };
+            if k.unused() || k == key {
+                return Ok(pos);
             }
         }
         Err(Error::NoSpace)

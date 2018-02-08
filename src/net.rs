@@ -82,15 +82,13 @@ pub fn read(socket: &UdpSocket, messages: &mut [Message], num: &mut usize) -> Re
     let sz = size_of::<Message>();
     let max = messages.len();
     while *num < max {
-        unsafe {
-            let p = &mut messages[*num] as *mut Message;
-            if (max - *num) * sz < MAX_PACKET {
-                return Ok(());
-            }
-            let buf = transmute(from_raw_parts(p as *mut u8, MAX_PACKET));
-            let (nrecv, _from) = socket.recv_from(buf)?;
-            *num = *num + nrecv / sz;
+        let p = &mut messages[*num] as *mut Message;
+        if (max - *num) * sz < MAX_PACKET {
+            return Ok(());
         }
+        let buf = unsafe { transmute(from_raw_parts(p as *mut u8, MAX_PACKET)) };
+        let (nrecv, _from) = socket.recv_from(buf)?;
+        *num = *num + nrecv / sz;
     }
     Ok(())
 }

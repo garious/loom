@@ -42,19 +42,19 @@ impl Gossip {
         self.subs = v;
         Ok(())
     }
-    unsafe fn exec(&mut self, m: &data::Message, new: &mut usize) -> Result<()> {
+    fn exec(&mut self, m: &data::Message, new: &mut usize) -> Result<()> {
         match m.pld.kind {
-            data::Kind::Signature => self.now = m.pld.data.poh.counter,
+            data::Kind::Signature => self.now = m.pld.get_poh().counter,
             data::Kind::Subscribe => {
-                let pos = SubT::find(&self.subs, &m.pld.data.sub.key)?;
+                let pos = SubT::find(&self.subs, &m.pld.get_sub().key)?;
                 let now = self.now;
                 let update = Subscriber {
-                    key: m.pld.data.sub.key,
-                    addr: m.pld.data.sub.addr,
-                    port: m.pld.data.sub.port,
+                    key: m.pld.get_sub().key,
+                    addr: m.pld.get_sub().addr,
+                    port: m.pld.get_sub().port,
                     lastping: now,
                 };
-                let g = self.subs.get_unchecked_mut(pos);
+                let g = unsafe { self.subs.get_unchecked_mut(pos) };
                 if g.key.unused() {
                     *new = *new + 1;
                 }
@@ -67,9 +67,7 @@ impl Gossip {
     pub fn execute(&mut self, msgs: &mut [data::Message]) -> Result<()> {
         for m in msgs {
             let mut new = 0;
-            unsafe {
-                self.exec(&m, &mut new)?;
-            }
+            self.exec(&m, &mut new)?;
             self.used = self.used + new;
             if ((4 * (self.used)) / 3) > self.subs.len() {
                 self.double()?;
