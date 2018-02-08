@@ -55,7 +55,7 @@ impl Default for MessageData {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 #[repr(u8)]
 pub enum Kind {
     Invalid,
@@ -112,6 +112,29 @@ pub struct Payload {
     pub kind: Kind,
     pub state: State, //zero when signed
     pub unused: u16,  //zero when signed
+}
+
+impl Payload {
+    pub fn get_tx(&self) -> &Transaction {
+        assert_eq!(self.kind, Kind::Transaction);
+        unsafe { &self.data.tx }
+    }
+    pub fn get_tx_mut(&mut self) -> &mut Transaction {
+        assert_eq!(self.kind, Kind::Transaction);
+        unsafe { &mut self.data.tx }
+    }
+    pub fn get_sub(&self) -> &Subscriber {
+        assert_eq!(self.kind, Kind::Subscribe);
+        unsafe { &self.data.sub }
+    }
+    pub fn get_poh(&self) -> &POH {
+        assert_eq!(self.kind, Kind::Signature);
+        unsafe { &self.data.poh }
+    }
+    pub fn get_get(&self) -> &GetLedger {
+        assert_eq!(self.kind, Kind::GetLedger);
+        unsafe { &self.data.get }
+    }
 }
 
 #[derive(Copy, Clone)]
