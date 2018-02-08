@@ -49,9 +49,9 @@ impl State {
         if m.pld.kind != data::Kind::Transaction {
             return Ok(());
         }
-        let pos = Self::find_accounts(state, &m.pld.data.tx.from, &m.pld.data.tx.to)?;
+        let pos = Self::find_accounts(state, &m.pld.from, &m.pld.data.tx.to)?;
         let (mut from, mut to) = Self::load_accounts(state, pos);
-        if from.from != m.pld.data.tx.from {
+        if from.from != m.pld.from {
             return Ok(());
         }
         if !to.from.unused() && to.from != m.pld.data.tx.to {
@@ -80,7 +80,7 @@ impl State {
         Ok(())
     }
     unsafe fn charge(acc: &mut data::Account, m: &mut data::Message) -> () {
-        let combined = m.pld.data.tx.amount + m.pld.data.tx.fee;
+        let combined = m.pld.data.tx.amount + m.pld.fee;
         if acc.balance >= combined {
             m.pld.state = data::State::Withdrawn;
             acc.balance = acc.balance - combined;
@@ -128,8 +128,8 @@ mod bench {
             unsafe {
                 m.pld.data.tx.to = [255u8; 32];
                 m.pld.data.tx.to[0] = i as u8;
-                m.pld.data.tx.from = [255u8; 32];
-                m.pld.data.tx.fee = 1;
+                m.pld.from = [255u8; 32];
+                m.pld.fee = 1;
                 m.pld.data.tx.amount = 1;
                 assert!(!m.pld.data.tx.to.unused());
                 assert!(!m.pld.data.tx.from.unused());

@@ -1,7 +1,7 @@
 #![allow(mutable_transmutes)]
 
 use std::cmp::min;
-use mio::net::UdpSocket;
+use std::net::UdpSocket;
 use std::mem::transmute;
 use std::mem::size_of;
 use std::slice::from_raw_parts;
@@ -10,20 +10,70 @@ use std::net::Ipv4Addr;
 use std::net::IpAddr;
 use data::{Message, MAX_PACKET};
 use result::Result;
+use result::Error::IO;
 
 pub fn server() -> Result<UdpSocket> {
-    let addr = "0.0.0.0:12345".parse()?;
-    let ret = UdpSocket::bind(&addr)?;
+    let ret = UdpSocket::bind("0.0.0.0:12345")?;
+    Ok(ret)
+}
+
+pub fn ledger_server() -> Result<UdpSocket> {
+    let ret = UdpSocket::bind("0.0.0.0:12346")?;
     //    ret.set_nonblocking(true)?;
     Ok(ret)
 }
 
 pub fn client(uri: &str) -> Result<UdpSocket> {
-    let addr = "0.0.0.0:0".parse()?;
-    let ret = UdpSocket::bind(&addr)?;
-    let to = uri.parse()?;
-    ret.connect(to)?;
+    let ret = UdpSocket::bind("0.0.0.0:0")?;
+    ret.connect(uri)?;
     Ok(ret)
+}
+
+pub fn socket() -> Result<UdpSocket> {
+    let ret = UdpSocket::bind("0.0.0.0:0")?;
+    Ok(ret)
+}
+
+pub fn read_from(
+    socket: &UdpSocket,
+    messages: &mut [Message],
+    mdata: &mut [(usize, SocketAddr)],
+) -> Result<usize> {
+    let sz = size_of::<Message>();
+    let max = messages.len();
+    let mut total = 0usize;
+    let mut ix = 0usize;
+    socket.set_nonblocking(false)?;
+    while total < max {
+        let p = &mut messages[total] as *mut Message;
+        if (max - total) * sz < MAX_PACKET {
+            return Ok(ix);
+        }
+        let buf = unsafe { transmute(from_raw_parts(p as *mut u8, MAX_PACKET)) };
+        trace!("recv_from");
+        match socket.recv_from(buf) {
+            Err(_) if ix > 0 => {
+                socket.set_nonblocking(false)?;
+                return Ok(ix);
+            }
+            Err(e) => {
+                info!("recv_from err {:?}", e);
+                return Err(IO(e));
+            }
+            Ok((nrecv, from)) => {
+                trace!("got recv_from {:?}", nrecv);
+                total += nrecv / sz;
+                trace!("total recv_from {:?}", total);
+                unsafe {
+                    *mdata.get_unchecked_mut(ix) = (nrecv / sz, from);
+                }
+                ix += 1;
+                socket.set_nonblocking(true)?;
+            }
+        }
+        trace!("done recv_from");
+    }
+    Ok(ix)
 }
 
 pub fn read(socket: &UdpSocket, messages: &mut [Message], num: &mut usize) -> Result<()> {
@@ -58,6 +108,24 @@ pub fn write(socket: &UdpSocket, messages: &[Message], num: &mut usize) -> Resul
     Ok(())
 }
 
+pub fn send_to(
+    socket: &UdpSocket,
+    msgs: &[Message],
+    num: &mut usize,
+    addr: SocketAddr,
+) -> Result<()> {
+    let sz = size_of::<Message>();
+    let max = msgs.len();
+    while *num < max {
+        let p = &msgs[*num] as *const Message;
+        let bz = min(MAX_PACKET / sz, max - *num) * sz;
+        let buf = unsafe { transmute(from_raw_parts(p as *const u8, bz)) };
+        let sent_size = socket.send_to(buf, &addr)?;
+        *num = *num + sent_size / sz;
+    }
+    Ok(())
+}
+
 pub fn sendtov4(
     socket: &UdpSocket,
     msgs: &[Message],
@@ -65,55 +133,22 @@ pub fn sendtov4(
     a: [u8; 4],
     port: u16,
 ) -> Result<()> {
-    let sz = size_of::<Message>();
     let ipv4 = Ipv4Addr::new(a[0], a[1], a[2], a[3]);
     let addr = SocketAddr::new(IpAddr::V4(ipv4), port);
-
-    let max = msgs.len();
-    while *num < max {
-        unsafe {
-            let p = &msgs[*num] as *const Message;
-            let bz = min(MAX_PACKET / sz, max - *num) * sz;
-            let buf = transmute(from_raw_parts(p as *const u8, bz));
-            let sent_size = socket.send_to(buf, &addr)?;
-            *num = *num + sent_size / sz;
-        }
-    }
-    Ok(())
+    send_to(socket, msgs, num, addr)
 }
 
-#[cfg(test)]
-use mio;
-
 #[test]
-fn server_test() {
-    const READABLE: mio::Token = mio::Token(0);
-    const WRITABLE: mio::Token = mio::Token(1);
-    let poll = mio::Poll::new().unwrap();
+fn read_write_test() {
     let sz = size_of::<Message>();
     let srv = server().expect("couldn't create a server");
     let cli = client("127.0.0.1:12345").expect("client");
     let max = MAX_PACKET / sz;
     let mut m = [Message::default(); 26];
     let mut num = 0;
-    poll.register(&cli, WRITABLE, mio::Ready::writable(), mio::PollOpt::edge())
-        .unwrap();
-    let mut events = mio::Events::with_capacity(8);
-    poll.poll(&mut events, None).unwrap();
-    for event in &events {
-        if let WRITABLE = event.token() {
-            write(&cli, &m[0..max], &mut num).expect("write");
-        }
-    }
-    assert_eq!(num, max);
-    num = 0;
-    poll.register(&srv, READABLE, mio::Ready::readable(), mio::PollOpt::edge())
-        .unwrap();
-    poll.poll(&mut events, None).unwrap();
-    for event in &events {
-        if let READABLE = event.token() {
-            read(&srv, &mut m, &mut num).expect("read");
-        }
-    }
-    assert_eq!(num, max);
+    write(&cli, &m[0..max], &mut num).expect("write");
+    assert!(num == max);
+
+    read(&srv, &mut m, &mut num).expect("read");
+    assert!(num == max);
 }
