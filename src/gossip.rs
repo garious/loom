@@ -1,3 +1,5 @@
+//! track gossip subscribers
+
 use data;
 use hasht::{HashT, Key, Val};
 use result::Result;

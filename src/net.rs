@@ -1,3 +1,5 @@
+//! network code, assuming all endpoints are reading and writing little endian C99 LP64 layout.
+
 #![allow(mutable_transmutes)]
 
 use std::cmp::min;

@@ -1,3 +1,5 @@
+//! state machine for transactions
+
 use data;
 use result::Result;
 use hasht::Key;
