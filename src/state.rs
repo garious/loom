@@ -3,13 +3,11 @@
 use data;
 use result::Result;
 use hasht::Key;
-use data::Reader;
 
 #[repr(C)]
 pub struct State {
     accounts: Vec<data::Account>,
     used: usize,
-    reader: Arc<Reader>,
 }
 
 impl State {
