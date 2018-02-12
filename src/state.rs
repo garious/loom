@@ -3,18 +3,21 @@
 use data;
 use result::Result;
 use hasht::Key;
+use data::Reader;
 
 #[repr(C)]
 pub struct State {
     accounts: Vec<data::Account>,
     used: usize,
+    reader: Arc<Reader>,
 }
 
 impl State {
-    pub fn new(size: usize) -> State {
+    pub fn new(size: usize, reader: Arc<Reader>) -> State {
         State {
             accounts: vec![data::Account::default(); size],
             used: 0,
+            reader: reader,
         }
     }
     fn double(&mut self) -> Result<()> {
