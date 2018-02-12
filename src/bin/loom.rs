@@ -28,7 +28,6 @@ fn loom(port: u16) {
     }
 }
 
-
 fn spool(loom: str) {
     let mut num = 0;
     let start = num;
