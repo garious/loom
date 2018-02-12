@@ -66,9 +66,7 @@ pub fn read_from(
                 trace!("got recv_from {:?}", nrecv);
                 total += nrecv / sz;
                 trace!("total recv_from {:?}", total);
-                unsafe {
-                    *mdata.get_unchecked_mut(ix) = (nrecv / sz, from);
-                }
+                *mdata.get_mut(ix).unwrap() = (nrecv / sz, from);
                 ix += 1;
                 socket.set_nonblocking(true)?;
             }
@@ -97,13 +95,11 @@ pub fn write(socket: &UdpSocket, messages: &[Message], num: &mut usize) -> Resul
     let sz = size_of::<Message>();
     let max = messages.len();
     while *num < max {
-        unsafe {
-            let p = &messages[*num] as *const Message;
-            let bz = min(MAX_PACKET / sz, max - *num) * sz;
-            let buf = transmute(from_raw_parts(p as *const u8, bz));
-            let sent_size = socket.send(buf)?;
-            *num = *num + sent_size / sz;
-        }
+        let p = &messages[*num] as *const Message;
+        let bz = min(MAX_PACKET / sz, max - *num) * sz;
+        let buf = unsafe { transmute(from_raw_parts(p as *const u8, bz)) };
+        let sent_size = socket.send(buf)?;
+        *num += sent_size / sz;
     }
     Ok(())
 }

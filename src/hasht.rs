@@ -25,7 +25,7 @@ where
         let st = key.start();
         for i in 0..num_elems {
             let pos = st.wrapping_add(i) % num_elems;
-            let k = unsafe { tbl.get_unchecked(pos).key() };
+            let k = tbl.get(pos).unwrap().key();
             if k.unused() || k == key {
                 return Ok(pos);
             }
@@ -38,9 +38,7 @@ where
                 continue;
             }
             let p = Self::find(src, i.key())?;
-            unsafe {
-                *dst.get_unchecked_mut(p) = (*i).clone();
-            }
+            *dst.get_mut(p).unwrap() = (*i).clone();
         }
         Ok(())
     }
