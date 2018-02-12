@@ -4,7 +4,7 @@ version = "0.0.1"
 authors = [
     "Anatoly Yakovenko <aeyakovenko@gmail.com>"
 ]
-license = "MIT"
+license = "APACHE-2.0"
 documentation = "tbd"
 keywords = ["blockchain"]
 readme = "README.md"
