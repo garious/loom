@@ -13,15 +13,11 @@ readme = "README.md"
 unstable = []
 
 [[bin]]
-name = "spool"
-path = "src/bin/spool.rs"
-
-[[bin]]
-name = "loom"
+name = "loomd"
 path = "src/bin/loom.rs"
 
 [[bin]]
-name = "client"
+name = "loom"
 path = "src/bin/client.rs"
 
 [dependencies]
