@@ -14,11 +14,11 @@ unstable = []
 
 [[bin]]
 name = "loomd"
-path = "src/bin/loom.rs"
+path = "src/bin/loomd.rs"
 
 [[bin]]
 name = "loom"
-path = "src/bin/client.rs"
+path = "src/bin/loom.rs"
 
 [dependencies]
 getopts = "^0.2"
