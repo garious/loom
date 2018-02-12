@@ -11,10 +11,11 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(size: usize) -> State {
+    pub fn new(size: usize, reader: Arc<Reader>) -> State {
         State {
             accounts: vec![data::Account::default(); size],
             used: 0,
+            reader: reader,
         }
     }
     fn double(&mut self) -> Result<()> {
