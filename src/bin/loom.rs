@@ -1,5 +1,5 @@
-extern crate loom;
 extern crate getopts;
+extern crate loom;
 
 use loom::net;
 use loom::state;
@@ -9,7 +9,6 @@ use loom::data;
 use getopts::Options;
 use std::env;
 use std::string::String;
-
 
 fn print_usage(program: &str, opts: Options) {
     let brief = format!("Usage: {} FILE [options]", program);
@@ -48,7 +47,12 @@ pub fn main() {
         return;
     }
 
-    opts.optopt("s", "", "Run as a Spool node with the Loom address", "ADDRESS");
+    opts.optopt(
+        "s",
+        "",
+        "Run as a Spool node with the Loom address",
+        "ADDRESS",
+    );
     opts.optopt("l", "", "Run as a Loom with a listen port", "PORT");
 
     if matches.opt_str("s").is_some() {
