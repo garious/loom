@@ -80,6 +80,7 @@ impl Wallet {
         let mut seed = [0u8; 64];
         rnd.fill_bytes(&mut seed);
         let (a, b) = ed25519::keypair(&seed);
+        assert!(cfg!(target_endian = "little"));
         let ap = unsafe { transmute::<[u8; 64], [u64; 8]>(a) };
         let bp = unsafe { transmute::<[u8; 32], [u64; 4]>(b) };
         (ap, bp)
@@ -87,6 +88,7 @@ impl Wallet {
     pub fn sign(kp: Keypair, msg: &mut data::Message) {
         let sz = size_of::<data::Payload>();
         let p = &msg.pld as *const data::Payload;
+        assert!(cfg!(target_endian = "little"));
         let buf = unsafe { transmute(from_raw_parts(p as *const u8, sz)) };
         let pk = unsafe { transmute::<[u64; 8], [u8; 64]>(kp.0) };
         msg.sig = ed25519::signature(buf, &pk);

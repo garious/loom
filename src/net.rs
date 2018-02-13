@@ -41,6 +41,7 @@ pub fn read_from(
         if (max - total) * sz < MAX_PACKET {
             return Ok(ix);
         }
+        assert!(cfg!(target_endian = "little"));
         let buf = unsafe { transmute(from_raw_parts(p as *mut u8, MAX_PACKET)) };
         trace!("recv_from");
         match socket.recv_from(buf) {
@@ -74,6 +75,7 @@ pub fn read(socket: &UdpSocket, messages: &mut [Message], num: &mut usize) -> Re
         if (max - *num) * sz < MAX_PACKET {
             return Ok(());
         }
+        assert!(cfg!(target_endian = "little"));
         let buf = unsafe { transmute(from_raw_parts(p as *mut u8, MAX_PACKET)) };
         let (nrecv, _from) = socket.recv_from(buf)?;
         *num = *num + nrecv / sz;
@@ -87,6 +89,7 @@ pub fn write(socket: &UdpSocket, messages: &[Message], num: &mut usize) -> Resul
     while *num < max {
         let p = &messages[*num] as *const Message;
         let bz = min(MAX_PACKET / sz, max - *num) * sz;
+        assert!(cfg!(target_endian = "little"));
         let buf = unsafe { transmute(from_raw_parts(p as *const u8, bz)) };
         let sent_size = socket.send(buf)?;
         *num += sent_size / sz;
@@ -105,6 +108,7 @@ pub fn send_to(
     while *num < max {
         let p = &msgs[*num] as *const Message;
         let bz = min(MAX_PACKET / sz, max - *num) * sz;
+        assert!(cfg!(target_endian = "little"));
         let buf = unsafe { transmute(from_raw_parts(p as *const u8, bz)) };
         let sent_size = socket.send_to(buf, &addr)?;
         *num = *num + sent_size / sz;
