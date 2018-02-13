@@ -64,7 +64,7 @@ pub fn main() {
 
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
-        Err(f) =>  {
+        Err(f) => {
             print_usage(&program, opts);
             panic!(f.to_string());
         }
@@ -72,7 +72,7 @@ pub fn main() {
     if matches.opt_str("s").is_some() {
         let loom: String = matches.opt_str("s").expect("missing loom address");
         spool(&loom);
-    } if matches.opt_str("l").is_some() {
+    } else if matches.opt_str("l").is_some() {
         let ports = matches.opt_str("l").expect("missing loom port");
         let port = ports.parse().expect("expecting u16 number for port");
         loom(port);
@@ -80,5 +80,4 @@ pub fn main() {
         print_usage(&program, opts);
         return;
     }
-
 }
