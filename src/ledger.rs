@@ -27,6 +27,7 @@ impl Ledger {
         let p = &mem[0] as *const data::Message;
         let sz = size_of::<data::Message>();
         let bz = mem.len() * sz;
+        assert!(cfg!(target_endian = "little"));
         let buf = unsafe { transmute(from_raw_parts(p as *const u8, bz)) };
         sock.send(buf)?;
         Ok(())
@@ -51,6 +52,7 @@ impl Ledger {
         let p = &msgs[0] as *const data::Message;
         let sz = size_of::<data::Message>();
         let bz = msgs.len() * sz;
+        assert!(cfg!(target_endian = "little"));
         let buf = unsafe { transmute(from_raw_parts(p as *const u8, bz)) };
         self.file.write_all(buf)?;
         Ok(())
@@ -64,6 +66,7 @@ impl Ledger {
         let sz = size_of::<data::Message>();
         file.seek(SeekFrom::Start(sz as u64 * start))?;
         let bz = msgs.len() * sz;
+        assert!(cfg!(target_endian = "little"));
         let buf = unsafe { transmute(from_raw_parts(p as *mut u8, bz)) };
         file.read(buf)?;
         Ok(())
