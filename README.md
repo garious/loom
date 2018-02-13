@@ -31,7 +31,7 @@ https://github.com/loomprotocol/loom/milestones
 Usage
 =====
 
-The build produces a handle of command-line executables in the "target/release/" directory, `client`, `spool` and `loom`.
+The build produces a handle of command-line executables in the "target/release/" directory, `loom` and `loomd`.
 
 loomd
 -----
