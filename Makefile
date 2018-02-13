@@ -1,6 +1,13 @@
 test:
 	cargo test
 
+integration:release
+	./target/release/loomd -h
+	./target/release/loom -h
+
+release:
+	cargo build --all-targets --release
+
 bench:
 	cargo +nightly bench --features="unstable"
 

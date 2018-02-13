@@ -4,7 +4,7 @@ version = "0.0.1"
 authors = [
     "Anatoly Yakovenko <aeyakovenko@gmail.com>"
 ]
-license = "MIT"
+license = "APACHE-2.0"
 documentation = "tbd"
 keywords = ["blockchain"]
 readme = "README.md"
@@ -13,16 +13,12 @@ readme = "README.md"
 unstable = []
 
 [[bin]]
-name = "spool"
-path = "src/bin/spool.rs"
+name = "loomd"
+path = "src/bin/loomd.rs"
 
 [[bin]]
 name = "loom"
 path = "src/bin/loom.rs"
-
-[[bin]]
-name = "client"
-path = "src/bin/client.rs"
 
 [dependencies]
 getopts = "^0.2"
