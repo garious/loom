@@ -14,21 +14,11 @@ use data::{Message, MAX_PACKET};
 use result::Result;
 use result::Error::IO;
 
-pub fn server() -> Result<UdpSocket> {
-    let ret = UdpSocket::bind("0.0.0.0:12345")?;
-    Ok(ret)
-}
-
-pub fn ledger_server() -> Result<UdpSocket> {
-    let ret = UdpSocket::bind("0.0.0.0:12346")?;
-    //    ret.set_nonblocking(true)?;
-    Ok(ret)
-}
-
-pub fn client(uri: &str) -> Result<UdpSocket> {
-    let ret = UdpSocket::bind("0.0.0.0:0")?;
-    ret.connect(uri)?;
-    Ok(ret)
+pub fn bindall(port: u16) -> Result<UdpSocket> {
+    let ipv4 = Ipv4Addr::new(0, 0, 0, 0);
+    let addr = SocketAddr::new(IpAddr::V4(ipv4), port);
+    let rv = UdpSocket::bind(&addr)?;
+    return Ok(rv);
 }
 
 pub fn socket() -> Result<UdpSocket> {
@@ -137,8 +127,9 @@ pub fn sendtov4(
 #[test]
 fn read_write_test() {
     let sz = size_of::<Message>();
-    let srv = server().expect("couldn't create a server");
-    let cli = client("127.0.0.1:12345").expect("client");
+    let srv = bindall(12345).expect("couldn't create a server");
+    let cli = socket().expect("socket create");
+    cli.connect("127.0.0.1:12345").expect("client");
     let max = MAX_PACKET / sz;
     let mut m = [Message::default(); 26];
     let mut num = 0;

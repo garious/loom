@@ -16,37 +16,43 @@ fn print_usage(program: &str, opts: Options) {
 }
 
 fn loom(port: u16) {
-    let mut num = 0;
-    let start = num;
-    net::read(&srv, &mut m[start..], &mut num).expect("read");
-    let end = num;
-    s.execute(&mut m[start..end]).expect("state");
-    g.execute(&mut m[start..end]).expect("gossip");
-    for s in &g.subs {
-        net::sendtov4(&srv, &m[start..end], &mut num, s.addr, s.port).expect("send");
+    loop {
+        let mut s = state::State::new(1024);
+        let mut g = gossip::Gossip::new(1024);
+        let mut m = vec![data::Message::default(); 1024];
+        let srv = net::bindall(port).expect("bind server port");
+        let mut num = 0;
+        let start = num;
+        net::read(&srv, &mut m[start..], &mut num).expect("read");
+        let end = num;
+        s.execute(&mut m[start..end]).expect("state");
+        g.execute(&mut m[start..end]).expect("gossip");
+        for s in &g.subs {
+            net::sendtov4(&srv, &m[start..end], &mut num, s.addr, s.port).expect("send");
+        }
     }
 }
 
-fn spool(loom: str) {
-    let mut num = 0;
-    let start = num;
-    net::read(&srv, &mut m[start..], &mut num).expect("read");
-    let end = num;
-    s.execute(&mut m[start..end]).expect("state");
-    g.execute(&mut m[start..end]).expect("gossip");
+fn spool(loom: &str) {
+    loop {
+        let mut s = state::State::new(1024);
+        let mut g = gossip::Gossip::new(1024);
+        let mut m = vec![data::Message::default(); 1024];
+        let mut num = 0;
+        let start = num;
+        let srv = net::socket().expect("connect to loom server");
+        srv.connect(loom).expect("socket connect");
+        net::read(&srv, &mut m[start..], &mut num).expect("read");
+        let end = num;
+        s.execute(&mut m[start..end]).expect("state");
+        g.execute(&mut m[start..end]).expect("gossip");
+    }
 }
 
 pub fn main() {
-    let srv = net::server().expect("server");
-    let mut s = state::State::new(1024);
-    let mut g = gossip::Gossip::new(1024);
-    let mut m = vec![data::Message::default(); 1024];
-
-    if matches.opt_present("h") {
-        print_usage(&program, opts);
-        return;
-    }
-
+    let args: Vec<String> = env::args().collect();
+    let program = args[0].clone();
+    let mut opts = Options::new();
     opts.optopt(
         "s",
         "",
@@ -55,12 +61,23 @@ pub fn main() {
     );
     opts.optopt("l", "", "Run as a Loom with a listen port", "PORT");
 
+    let matches = match opts.parse(&args[1..]) {
+        Ok(m) => m,
+        Err(f) =>  {
+            print_usage(&program, opts);
+            panic!(f.to_string());
+        }
+    };
+    if matches.opt_present("h") {
+        print_usage(&program, opts);
+        return;
+    }
     if matches.opt_str("s").is_some() {
-        let loom = matches.opt_str("s").expect("missing loom address");
-        spool(loom);
+        let loom: String = matches.opt_str("s").expect("missing loom address");
+        spool(&loom);
     } else {
         let ports = matches.opt_str("l").expect("missing loom port");
-        let port = ports.parse("expecting u16 number for port");
+        let port = ports.parse().expect("expecting u16 number for port");
         loom(port);
     }
 }

@@ -128,7 +128,8 @@ fn reader_test() {
     let exit = Arc::new(Mutex::new(false));
     let c_exit = exit.clone();
     let t = spawn(move || c_reader.run(c_exit));
-    let cli = net::client("127.0.0.1:12001").expect("client");
+    let cli: UdpSocket  = net::socket().expect("socket");
+    cli.connect("127.0.0.1:12001").expect("client");
     let timer = Duration::new(1, 0);
     cli.set_write_timeout(Some(timer)).expect("write timer");
     let m = [data::Message::default(); 64];
