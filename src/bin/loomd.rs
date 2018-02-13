@@ -61,6 +61,7 @@ pub fn main() {
         "ADDRESS",
     );
     opts.optopt("l", "", "Run as a Loom with a listen port", "PORT");
+    opts.optopt("t", "", "testnet accounts", "FILE");
 
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
@@ -69,6 +70,9 @@ pub fn main() {
             panic!(f.to_string());
         }
     };
+    if matches.opt_str("t").is_some() {
+        let f = matches.opt_str("t").expect("testnet accounts file");
+    }
     if matches.opt_str("s").is_some() {
         let loom: String = matches.opt_str("s").expect("missing loom address");
         spool(&loom);
