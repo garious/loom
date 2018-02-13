@@ -33,39 +33,29 @@ Usage
 
 The build produces a handle of command-line executables in the "target/release/" directory, `client`, `spool` and `loom`.
 
-loom
-----
-
-builds the blockchain
-
-```
-Usage: loom [options]
-
-Options:
-    -h, --help          print this help menu
-```
-
-
-spool
+loomd
 -----
 
-verifies the blockchain
+Loom daemon
 
 ```
-Usage: spool [options]
+Usage: loomd [options]
 
 Options:
     -h, --help          print this help menu
+    -s ADDRESS          Run as a Spool node with the Loom address
+    -l PORT             Run as a Loom with a listen port
+
 ```
 
 
-client
-------
+loom
+----
 
 user client that implements a basic wallet
 
 ```
-Usage: client FILE [options]
+Usage: loom FILE [options]
 
 Options:
     -c                  create a new address
