@@ -53,6 +53,7 @@ pub fn main() {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
     let mut opts = Options::new();
+    opts.optflag("h", "help", "print this help menu");
     opts.optopt(
         "s",
         "",
@@ -68,16 +69,16 @@ pub fn main() {
             panic!(f.to_string());
         }
     };
-    if matches.opt_present("h") {
-        print_usage(&program, opts);
-        return;
-    }
     if matches.opt_str("s").is_some() {
         let loom: String = matches.opt_str("s").expect("missing loom address");
         spool(&loom);
-    } else {
+    } if matches.opt_str("l").is_some() {
         let ports = matches.opt_str("l").expect("missing loom port");
         let port = ports.parse().expect("expecting u16 number for port");
         loom(port);
+    } else {
+        print_usage(&program, opts);
+        return;
     }
+
 }
