@@ -53,6 +53,12 @@ impl EncryptedWallet {
 }
 
 impl Wallet {
+    pub fn new() -> Wallet {
+        Wallet {
+            pubkeys: Vec::new(),
+            privkeys: Vec::new(),
+        }
+    }
     pub fn add_key_pair(&mut self, pk: Keypair) {
         self.privkeys.push(pk.0);
         self.pubkeys.push(pk.1);
