@@ -1,7 +1,7 @@
 test:
 	cargo test
 
-integration:release help_t test_acc_t wallet_t
+integration:release help_t testacc_t wallet_t
 
 release:
 	cargo build --all-targets --release
@@ -28,5 +28,5 @@ wallet_t:release
 	rm loom.wallet
 
 
-test_acc_t:
+testacc_t:release
 	./target/release/loomd -t ./testdata/test_accounts.json
