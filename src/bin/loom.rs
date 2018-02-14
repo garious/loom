@@ -25,7 +25,7 @@ fn print_usage(program: &str, opts: Options) {
 fn load_wallet(cfg: &Cfg, pass: String) -> Wallet {
     let ew = EncryptedWallet::from_file(&cfg.wallet)
             .unwrap_or(EncryptedWallet::new());
-    Wallet::decrypt(ew, pass.as_bytes()).unwrap_or(Wallet::new();
+    Wallet::decrypt(ew, pass.as_bytes()).unwrap_or(Wallet::new())
 }
 
 fn new_key_pair(cfg: &Cfg) {
