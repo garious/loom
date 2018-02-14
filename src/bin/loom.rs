@@ -49,7 +49,7 @@ fn transfer(cfg: &Cfg, from: String, to: String, amnt: u64) -> Result<()>
     let tpk = BASE32HEX_NOPAD.decode(to.as_bytes()).expect("to key");
     let tx = data::MessageData {
                 tx: data::Transaction{
-                    to: tpk.as_bytes(),
+                    to: tpk[0..32],
                     amount: amnt
                 }
            };
@@ -57,7 +57,7 @@ fn transfer(cfg: &Cfg, from: String, to: String, amnt: u64) -> Result<()>
     msg.pld.from = fpk;
     msg.pld.data = tx;
     msg.pld.kind = data::Kind::Transaction;
-    w.sign_with(fpk, &msg)?;
+    w.sign_with(fpk, &mut msg)?;
     let s = net::socket()?;
     s.connect(cfg.host);
     net::write(&s, &[msg])?;
