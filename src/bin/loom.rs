@@ -50,7 +50,7 @@ fn transfer(cfg: &Cfg, from: String, to: String, amnt: u64) -> Result<()>
     let tpk = BASE32HEX_NOPAD.decode(to.as_bytes()).expect("to key");
     let tx = data::MessageData {
                 tx: data::Transaction{
-                    to: <[u8;32]>::from(tpk),
+                    to: tpk.from(),
                     amount: amnt
                 }
            };
