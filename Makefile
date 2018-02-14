@@ -1,8 +1,7 @@
 test:
 	cargo test
 
-integration:release help_t test_acc_t
-
+integration:release help_t test_acc_t wallet_t
 
 release:
 	cargo build --all-targets --release
@@ -23,7 +22,7 @@ help_t:release
 	./target/release/loomd -h
 	./target/release/loom -h
 
-wallet_create_t:release
+wallet_t:release
 	rm -rf loom.wallet
 	echo foo | ./target/release/loom -c
 	rm loom.wallet

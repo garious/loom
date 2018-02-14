@@ -45,7 +45,7 @@ impl EncryptedWallet {
         Ok(ew)
     }
     pub fn to_file(&self, path: &str) -> Result<()> {
-        let mut file = File::open(path)?;
+        let mut file = File::create(path)?;
         let d = serde_json::to_vec(self)?;
         file.write_all(&d)?;
         Ok(())
