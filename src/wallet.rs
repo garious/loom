@@ -93,9 +93,9 @@ impl Wallet {
         (ap, bp)
     }
 
-    pub fn sign_with(&self, a: &[u8; 32], msg: &mut data::Message) -> Result<()> {
+    pub fn sign_with(&self, msg: &mut data::Message) -> Result<()> {
         assert!(cfg!(target_endian = "little"));
-        let ap = unsafe { transmute::<[u8; 32], [u64; 4]>(*a) };
+        let ap = unsafe { transmute::<[u8; 32], [u64; 4]>(msg.pld.from) };
         for (i,k) in self.pubkeys.iter().enumerate() {
             if *k == ap {
                 let pk = self.privkeys[i];

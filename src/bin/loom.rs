@@ -11,6 +11,7 @@ use loom::wallet::{EncryptedWallet, Wallet};
 use loom::data;
 use loom::net;
 use loom::result::Result;
+use std::convert::From;
 
 struct Cfg {
     host: String,
@@ -49,18 +50,22 @@ fn transfer(cfg: &Cfg, from: String, to: String, amnt: u64) -> Result<()>
     let tpk = BASE32HEX_NOPAD.decode(to.as_bytes()).expect("to key");
     let tx = data::MessageData {
                 tx: data::Transaction{
-                    to: tpk[0..32],
+                    to: <[u8;32]>::from(tpk),
                     amount: amnt
                 }
            };
     let mut msg = data::Message::default();
-    msg.pld.from = fpk;
+    msg.pld.from = fpk.from();
     msg.pld.data = tx;
     msg.pld.kind = data::Kind::Transaction;
-    w.sign_with(fpk, &mut msg)?;
+    w.sign_msg(&mut msg)?;
     let s = net::socket()?;
     s.connect(cfg.host);
-    net::write(&s, &[msg])?;
+    let mut num = 0;
+    while num < 1 {
+        net::write(&s, &[msg], &mut num)?;
+    }
+    Ok(())
 }
 
 fn balance(_addr: String) {}
@@ -92,7 +97,7 @@ pub fn main() {
         cfg.host = matches.opt_str("H").expect("loom host address");
     }
     if matches.opt_present("W") {
-        cfg.path = matches.opt_str("W").expect("loom wallet path");
+        cfg.wallet = matches.opt_str("W").expect("loom wallet path");
     }
     if matches.opt_present("c") {
         new_key_pair(&cfg);
