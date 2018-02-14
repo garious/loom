@@ -8,7 +8,7 @@ use std::env;
 use std::string::String;
 use data_encoding::BASE32HEX_NOPAD;
 use loom::wallet::{EncryptedWallet, Wallet};
-use data;
+use loom::data;
 
 struct Cfg {
     host: &str,
