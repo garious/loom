@@ -10,10 +10,11 @@ use data_encoding::BASE32HEX_NOPAD;
 use loom::wallet::{EncryptedWallet, Wallet};
 use loom::data;
 use loom::net;
+use loom::result::Result;
 
 struct Cfg {
-    host: &str,
-    wallet: &str,
+    host: String,
+    wallet: String,
 }
 
 fn print_usage(program: &str, opts: Options) {
@@ -21,21 +22,21 @@ fn print_usage(program: &str, opts: Options) {
     print!("{}", opts.usage(&brief));
 }
 
-fn load_wallet(pass: String, cfg: &Cfg) -> Result<Wallet> {
-    let ew = EncryptedWallet::from_file(cfg.wallet).unwrap_or(EncryptedWallet::new());
-    let w = Wallet::decrypt(ew, pass.as_bytes()).unwrap_or(Wallet::new());
-    return Ok(w);
+fn load_wallet(cfg: &Cfg, pass: String) -> Wallet {
+    let ew = EncryptedWallet::from_file(&cfg.wallet)
+            .unwrap_or(EncryptedWallet::new());
+    Wallet::decrypt(ew, pass.as_bytes()).unwrap_or(Wallet::new();
 }
 
 fn new_key_pair(cfg: &Cfg) {
     let prompt = "loom wallet password: ";
     let pass = rpassword::prompt_password_stdout(prompt).expect("password");
-    let mut w = load_wallet(pass);
+    let mut w = load_wallet(cfg, pass);
     let kp = Wallet::new_keypair();
     w.add_key_pair(kp);
     w.encrypt(pass.as_bytes())
         .expect("encrypt")
-        .to_file(cfg.wallet)
+        .to_file(&cfg.wallet)
         .expect("write");
 }
 
@@ -43,7 +44,7 @@ fn transfer(cfg: &Cfg, from: String, to: String, amnt: u64) -> Result<()>
 {
     let prompt = "loom wallet password: ";
     let pass = rpassword::prompt_password_stdout(prompt).expect("password");
-    let mut w = load_wallet(pass);
+    let mut w = load_wallet(cfg, pass);
     let fpk = BASE32HEX_NOPAD.decode_len(from).expect("from key");
     let tpk = BASE32HEX_NOPAD.decode_len(to).expect("to key");
     let mut msg = data::Message {
@@ -68,7 +69,7 @@ fn balance(_addr: String) {}
 pub fn main() {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
-    let mut Cfg = Cfg{host: &"loom.loomprotocol.com:12345",
+    let mut cfg = Cfg{host: &"loom.loomprotocol.com:12345",
                       wallet: &"loom.wallet"};
     let mut opts = Options::new();
     opts.optflag("c", "", "create a new address");
@@ -95,14 +96,14 @@ pub fn main() {
         cfg.path = &matches.opt_str("W").expect("loom wallet path");
     }
     if matches.opt_present("c") {
-        new_key_pair();
+        new_key_pair(&cfg);
         return;
     } else if matches.opt_present("x") {
         let to = matches.opt_str("t").expect("missing destination address");
         let from = matches.opt_str("f").expect("missing source address");
         let astr = matches.opt_str("a").expect("missing ammount");
         let a = astr.parse().expect("ammount is not a number");
-        transfer(to, from, a);
+        transfer(&cfg, to, from, a);
         return;
     } else if matches.opt_present("b") {
         let to = matches.opt_str("t").expect("missing destination address");
