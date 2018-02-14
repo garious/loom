@@ -84,10 +84,10 @@ pub fn main() {
         return;
     }
     if matches.opt_present("H") {
-        cfg.host = &matches.opt_str("H").expect("loom host address");
+        cfg.host = matches.opt_str("H").expect("loom host address");
     }
     if matches.opt_present("W") {
-        cfg.path = &matches.opt_str("W").expect("loom wallet path");
+        cfg.path = matches.opt_str("W").expect("loom wallet path");
     }
     if matches.opt_present("c") {
         new_key_pair(&cfg);
