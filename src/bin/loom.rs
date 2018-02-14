@@ -45,19 +45,13 @@ fn transfer(cfg: &Cfg, from: String, to: String, amnt: u64) -> Result<()>
     let prompt = "loom wallet password: ";
     let pass = rpassword::prompt_password_stdout(prompt).expect("password");
     let mut w = load_wallet(cfg, pass);
-    let fpk = BASE32HEX_NOPAD.decode_len(from).expect("from key");
-    let tpk = BASE32HEX_NOPAD.decode_len(to).expect("to key");
-    let mut msg = data::Message {
-        from: fpk,
-        lvh: [0; 32],
-        lvh_count: 0,
-        fee: 0,
-        data: data::MessageData{tx: data::Transaction{to: tpk, amount: amnt}},
-        version: 0,
-        kind: data::Kind::Transaction,
-        state: data::State::Unknown,
-        unused: 0,
-    };
+    let fpk = BASE32HEX_NOPAD.decode(from.as_bytes()).expect("from key");
+    let tpk = BASE32HEX_NOPAD.decode(to.as_bytes()).expect("to key");
+    let tx = data::MessageData{tx: data::Transaction{to: tpk, amount: amnt}};
+    let mut msg = data::Message::default();
+    msg.pld.from = fpk;
+    msg.pld.data = tx;
+    msg.pld.kind = data::Kind::Transaction;
     w.sign_with(fpk, &msg)?;
     let s = net::socket()?;
     s.connect(cfg.host);
