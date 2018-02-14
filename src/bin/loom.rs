@@ -16,7 +16,7 @@ fn print_usage(program: &str, opts: Options) {
 fn new_key_pair() {
     let path = "loom.wallet";
     let prompt = "./loom.wallet password: ";
-    let pass = rpassword::prompt_password_stdout(prompt).unwrap();
+    let pass = rpassword::prompt_password_stdout(prompt).expect("password");
     let ew = EncryptedWallet::from_file(path).unwrap_or(EncryptedWallet::new());
     let mut w = Wallet::decrypt(ew, pass.as_bytes()).expect("decrypt");
     let kp = Wallet::new_keypair();

@@ -17,6 +17,14 @@ impl State {
             used: 0,
         }
     }
+    pub fn from_list(v: &[data::Account]) -> Result<State> {
+        let mut s = Self::new(v.len() * 2);
+        for a in v {
+            let fp = data::AccountT::find(&s.accounts, &a.from)?;
+            s.accounts[fp].balance = a.balance;
+        }
+        return Ok(s);
+    }
     fn double(&mut self) -> Result<()> {
         let size = self.accounts.len() * 2;
         let mut v = vec![data::Account::default(); size];

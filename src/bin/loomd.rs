@@ -1,5 +1,5 @@
-use loom;
+extern crate loom;
 
 pub fn main() {
-    loom::loomd:run();
+    loom::loomd::run();
 }
