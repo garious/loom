@@ -19,9 +19,14 @@ fmt:
 wfmt:
 	cargo fmt -- --write-mode=overwrite
 
-help_t:
+help_t:release
 	./target/release/loomd -h
 	./target/release/loom -h
+
+wallet_create_t:release
+	rm -rf loom.wallet
+	echo foo | ./target/release/loom -c
+	rm loom.wallet
 
 
 test_acc_t:
