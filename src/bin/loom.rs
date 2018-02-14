@@ -27,7 +27,12 @@ fn new_key_pair() {
         .expect("write");
 }
 
-fn transfer(_from: String, _to: String, _amnt: u64) {}
+fn transfer(from: String, to: String, amnt: u64) -> Result<()> 
+{
+    let s = net::socket()?;
+    s.connect("loom.loomprotocol.com:12345");
+    let fpk = from.
+}
 
 fn balance(_addr: String) {}
 
