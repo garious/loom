@@ -9,6 +9,7 @@ use std::string::String;
 use data_encoding::BASE32HEX_NOPAD;
 use loom::wallet::{EncryptedWallet, Wallet};
 use loom::data;
+use loom::net;
 
 struct Cfg {
     host: &str,
@@ -20,16 +21,16 @@ fn print_usage(program: &str, opts: Options) {
     print!("{}", opts.usage(&brief));
 }
 
-fn load_wallet(cfg: &Cfg) -> Result<Wallet> {
-    let prompt = "./loom.wallet password: ";
-    let pass = rpassword::prompt_password_stdout(prompt).expect("password");
+fn load_wallet(pass: String, cfg: &Cfg) -> Result<Wallet> {
     let ew = EncryptedWallet::from_file(cfg.wallet).unwrap_or(EncryptedWallet::new());
     let w = Wallet::decrypt(ew, pass.as_bytes()).unwrap_or(Wallet::new());
     return Ok(w);
 }
 
 fn new_key_pair(cfg: &Cfg) {
-    let mut w = load_wallet();
+    let prompt = "loom wallet password: ";
+    let pass = rpassword::prompt_password_stdout(prompt).expect("password");
+    let mut w = load_wallet(pass);
     let kp = Wallet::new_keypair();
     w.add_key_pair(kp);
     w.encrypt(pass.as_bytes())
@@ -38,10 +39,11 @@ fn new_key_pair(cfg: &Cfg) {
         .expect("write");
 }
 
-
 fn transfer(cfg: &Cfg, from: String, to: String, amnt: u64) -> Result<()> 
 {
-    let mut w = load_wallet();
+    let prompt = "loom wallet password: ";
+    let pass = rpassword::prompt_password_stdout(prompt).expect("password");
+    let mut w = load_wallet(pass);
     let fpk = BASE32HEX_NOPAD.decode_len(from).expect("from key");
     let tpk = BASE32HEX_NOPAD.decode_len(to).expect("to key");
     let mut msg = data::Message {
@@ -51,8 +53,8 @@ fn transfer(cfg: &Cfg, from: String, to: String, amnt: u64) -> Result<()>
         fee: 0,
         data: data::MessageData{tx: data::Transaction{to: tpk, amount: amnt}},
         version: 0,
-        kind: Transaction,
-        state: Unknown,
+        kind: data::Kind::Transaction,
+        state: data::State::Unknown,
         unused: 0,
     };
     w.sign_with(fpk, &msg)?;
