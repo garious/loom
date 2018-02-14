@@ -93,13 +93,13 @@ impl Wallet {
         (ap, bp)
     }
 
-    pub fn sign_with(&self, a: &[u8; 64], msg: &mut data::Message) -> Result<()> {
+    pub fn sign_with(&self, a: &[u8; 32], msg: &mut data::Message) -> Result<()> {
         assert!(cfg!(target_endian = "little"));
-        let ap = unsafe { transmute::<[u8; 64], [u64; 8]>(*a) };
+        let ap = unsafe { transmute::<[u8; 32], [u64; 4]>(*a) };
         for (i,k) in self.pubkeys.iter().enumerate() {
             if *k == ap {
                 let pk = self.privkeys[i];
-                Self::sign((k, pk), msg);
+                Self::sign((pk, *k), msg);
                 return Ok(());
             }
         }

@@ -8,6 +8,7 @@ use std::env;
 use std::string::String;
 use data_encoding::BASE32HEX_NOPAD;
 use loom::wallet::{EncryptedWallet, Wallet};
+use data;
 
 struct Cfg {
     host: &str,
@@ -48,7 +49,7 @@ fn transfer(cfg: &Cfg, from: String, to: String, amnt: u64) -> Result<()>
         lvh: [0; 32],
         lvh_count: 0,
         fee: 0,
-        data: MessageData{tx: Transaction{to: tpk, amount: amnt}},
+        data: data::MessageData{tx: data::Transaction{to: tpk, amount: amnt}},
         version: 0,
         kind: Transaction,
         state: Unknown,
@@ -65,7 +66,8 @@ fn balance(_addr: String) {}
 pub fn main() {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
-    let mut Cfg = Cfg{host: &"loom.loomprotocol.com:12345", wallet=&"loom.wallet"};
+    let mut Cfg = Cfg{host: &"loom.loomprotocol.com:12345",
+                      wallet: &"loom.wallet"};
     let mut opts = Options::new();
     opts.optflag("c", "", "create a new address");
     opts.optflag("x", "", "transfer");
