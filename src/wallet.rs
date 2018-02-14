@@ -45,7 +45,7 @@ impl EncryptedWallet {
         Ok(ew)
     }
     pub fn to_file(&self, path: &str) -> Result<()> {
-        let mut file = File::open(path)?;
+        let mut file = File::create(path)?;
         let d = serde_json::to_vec(self)?;
         file.write_all(&d)?;
         Ok(())
@@ -53,6 +53,12 @@ impl EncryptedWallet {
 }
 
 impl Wallet {
+    pub fn new() -> Wallet {
+        Wallet {
+            pubkeys: Vec::new(),
+            privkeys: Vec::new(),
+        }
+    }
     pub fn add_key_pair(&mut self, pk: Keypair) {
         self.privkeys.push(pk.0);
         self.pubkeys.push(pk.1);
