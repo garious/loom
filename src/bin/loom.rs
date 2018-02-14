@@ -47,7 +47,12 @@ fn transfer(cfg: &Cfg, from: String, to: String, amnt: u64) -> Result<()>
     let mut w = load_wallet(cfg, pass);
     let fpk = BASE32HEX_NOPAD.decode(from.as_bytes()).expect("from key");
     let tpk = BASE32HEX_NOPAD.decode(to.as_bytes()).expect("to key");
-    let tx = data::MessageData{tx: data::Transaction{to: tpk, amount: amnt}};
+    let tx = data::MessageData {
+                tx: data::Transaction{
+                    to: tpk.as_bytes(),
+                    amount: amnt
+                }
+           };
     let mut msg = data::Message::default();
     msg.pld.from = fpk;
     msg.pld.data = tx;
