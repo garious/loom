@@ -75,13 +75,13 @@ Build instructions
 For development:
 
 ```bash
-$ cargo +beta build
+$ cargo build
 ```
 
 
 Optimized for performance:
 
 ```bash
-$ cargo +beta build --release
+$ cargo build --release
 ```
 
