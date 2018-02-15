@@ -90,6 +90,7 @@ pub fn main() {
     opts.optflag("l", "list", "list your addresses and balances");
     opts.optflag("h", "help", "print this help menu");
     opts.optopt("H", "", "loom node address to use instead of loom.looprotocol.com:12345", "HOST:PORT");
+    opts.optopt("W", "", "loom wallet instead of loom.wallet", "PATH");
     opts.optopt("t", "", "destination address", "ADDRESS");
     opts.optopt("f", "", "source address", "ADDRESS");
     opts.optopt("a", "", "amount", "AMOUNT");
