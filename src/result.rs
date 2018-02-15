@@ -13,6 +13,7 @@ pub enum Error {
     NoneError,
     NoSpace,
     ToLarge,
+    PubKeyNotFound,
 }
 
 impl PartialEq for Error {

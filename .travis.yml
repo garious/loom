@@ -15,4 +15,4 @@ script:
 - cargo fmt -- --write-mode=diff
 - cargo build --verbose --features "$FEATURES"
 - cargo test --verbose --features "$FEATURES"
-- make integration
+- make itest

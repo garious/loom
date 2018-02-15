@@ -13,6 +13,7 @@ use rand::os::OsRng;
 
 use data;
 use result::Result;
+use result::Error::PubKeyNotFound;
 use serde_json;
 use aes;
 
@@ -91,6 +92,20 @@ impl Wallet {
         let bp = unsafe { transmute::<[u8; 32], [u64; 4]>(b) };
         (ap, bp)
     }
+
+    pub fn sign_msg(&self, msg: &mut data::Message) -> Result<()> {
+        assert!(cfg!(target_endian = "little"));
+        let ap = unsafe { transmute::<[u8; 32], [u64; 4]>(msg.pld.from) };
+        for (i, k) in self.pubkeys.iter().enumerate() {
+            if *k == ap {
+                let pk = self.privkeys[i];
+                Self::sign((pk, *k), msg);
+                return Ok(());
+            }
+        }
+        return Err(PubKeyNotFound);
+    }
+
     pub fn sign(kp: Keypair, msg: &mut data::Message) {
         let sz = size_of::<data::Payload>();
         let p = &msg.pld as *const data::Payload;

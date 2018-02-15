@@ -1,7 +1,7 @@
 test:
 	cargo test
 
-integration:release help_t testacc_t wallet_t
+itest:release help_t testacc_t wallet_t
 
 release:
 	cargo build --all-targets --release
