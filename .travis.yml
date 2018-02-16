@@ -1,4 +1,7 @@
 language: rust
+required: sudo
+services:
+- docker
 matrix:
   allow_failures:
   - rust: nightly
@@ -16,3 +19,6 @@ script:
 - cargo build --verbose --features "$FEATURES"
 - cargo test --verbose --features "$FEATURES"
 - make itest
+after_success: |
+  make cov
+  bash <(curl -s https://codecov.io/bash) -s target/cov
